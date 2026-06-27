@@ -19,7 +19,7 @@ window.Store = (function () {
   var SETTINGS_KEY = "kanji.settings.v1";
 
   var DEFAULT_SETTINGS = {
-    cues: { meaning: true, readings: true, vocab: true },
+    cues: { frequency: true, meaning: true, readings: true, vocab: true },
   };
 
   function readJSON(key, fallback) {

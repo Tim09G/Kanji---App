@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=2" />
+  <link rel="stylesheet" href="css/styles.css?v=3" />
 </head>
 <body>
   <header class="app-header">
@@ -17,6 +17,7 @@
     <!-- ============ HOME ============ -->
     <section id="screen-home" class="screen active">
       <p class="home-counts" id="home-counts">—</p>
+      <p class="home-due" id="home-due"></p>
       <div class="home-menu">
         <button id="nav-learn" class="mode-card" type="button">
           <span class="mode-emoji">🌱</span>
@@ -26,7 +27,7 @@
         <button id="nav-quiz" class="mode-card" type="button">
           <span class="mode-emoji">✎</span>
           <span class="mode-title">Quiz</span>
-          <span class="mode-desc">Choose a set and write them from memory.</span>
+          <span class="mode-desc">Filter, sort and write characters from memory.</span>
         </button>
         <button id="nav-browse" class="mode-card" type="button">
           <span class="mode-emoji">👁</span>
@@ -61,6 +62,7 @@
               <dt>On (音)</dt><dd id="browse-on">—</dd>
               <dt>Kun (訓)</dt><dd id="browse-kun">—</dd>
               <dt>Strokes</dt><dd id="browse-strokes">—</dd>
+              <dt>Frequency</dt><dd id="browse-freq">—</dd>
             </dl>
           </div>
         </aside>
@@ -71,9 +73,27 @@
     <section id="screen-quiz-select" class="screen">
       <div class="screen-bar">
         <button class="btn btn-ghost" data-home type="button">← Home</button>
-        <h2>Quiz — pick characters</h2>
+        <h2>Quiz</h2>
       </div>
-      <p class="hint">Tap to select the characters you want to be quizzed on.</p>
+
+      <div id="quiz-due-banner" class="due-banner"></div>
+
+      <details class="filter-box" id="filter-box">
+        <summary>Filters &amp; sorting <span class="filter-hint">(combine with AND)</span></summary>
+        <div id="filter-rows" class="filter-rows"></div>
+        <div class="filter-actions">
+          <button id="filter-apply" class="btn btn-primary" type="button">Apply filters</button>
+          <button id="filter-reset" class="btn btn-ghost" type="button">Reset filters</button>
+          <span id="filter-match" class="count"></span>
+        </div>
+        <div class="order-row">
+          <label for="quiz-sort">Order:</label>
+          <select id="quiz-sort" class="select-input"></select>
+          <label class="cue-toggle"><input type="checkbox" id="quiz-random" /> Randomize</label>
+        </div>
+      </details>
+
+      <p class="hint">Tap characters to include them, or use the filters above.</p>
       <div class="select-toolbar">
         <button id="quiz-all" class="btn btn-ghost" type="button">Select all</button>
         <button id="quiz-clear" class="btn btn-ghost" type="button">Clear</button>
@@ -90,21 +110,43 @@
     <section id="screen-learn-setup" class="screen">
       <div class="screen-bar">
         <button class="btn btn-ghost" data-home type="button">← Home</button>
-        <h2>Learn new characters</h2>
+        <h2>Learn</h2>
       </div>
-      <p class="hint">
-        New characters are introduced in study order. Each one is practiced across
-        4 steps (guided → order → start-points → from memory), mixed together so you
-        don't just memorise one before moving on.
-      </p>
-      <p class="learn-meta"><span id="learn-available">0</span> characters available to learn.</p>
-      <div class="learn-controls">
-        <label for="learn-count">How many this session?</label>
-        <select id="learn-count" class="select-input"></select>
+
+      <div class="learn-mode-toggle">
+        <label class="seg"><input type="radio" name="learn-mode" value="count" checked /> <span>Next in order</span></label>
+        <label class="seg"><input type="radio" name="learn-mode" value="manual" /> <span>Choose specific</span></label>
       </div>
-      <p class="learn-preview" id="learn-preview"></p>
+
+      <!-- count mode -->
+      <div id="learn-count-pane">
+        <p class="hint">
+          New characters are introduced in study order, each practiced across 4
+          interleaved steps (guided → order → start-points → from memory).
+        </p>
+        <p class="learn-meta"><span id="learn-available">0</span> characters available to learn.</p>
+        <div class="learn-controls">
+          <label for="learn-count">How many this session?</label>
+          <select id="learn-count" class="select-input"></select>
+        </div>
+        <p class="learn-preview" id="learn-preview"></p>
+      </div>
+
+      <!-- manual mode -->
+      <div id="learn-manual-pane" hidden>
+        <p class="hint">
+          Pick any characters (no limit). Ones you've never studied get the full
+          4-step guided flow; ones already in your review pool are just reviewed —
+          all mixed together in one session.
+        </p>
+        <div class="select-toolbar">
+          <span id="learn-manual-count" class="count">0 selected</span>
+        </div>
+        <div id="learn-manual-grid" class="select-grid"></div>
+      </div>
+
       <div class="screen-actions">
-        <button id="learn-start" class="btn btn-primary" type="button">Start learning →</button>
+        <button id="learn-start" class="btn btn-primary" type="button">Start →</button>
       </div>
     </section>
 
@@ -125,7 +167,6 @@
           <div class="controls">
             <button id="draw-reveal" class="btn btn-ghost" type="button">Show answer</button>
             <button id="draw-skip" class="btn btn-ghost" type="button">Skip</button>
-            <button id="draw-next" class="btn btn-primary" type="button" hidden>Next →</button>
           </div>
         </div>
 
@@ -158,9 +199,11 @@
   </footer>
 
   <script src="vendor/hanzi-writer.min.js"></script>
-  <script src="data/kanji-meta.js?v=2"></script>
-  <script src="js/store.js?v=2"></script>
-  <script src="js/drawscreen.js?v=2"></script>
-  <script src="js/app.js?v=2"></script>
+  <script src="data/kanji-meta.js?v=3"></script>
+  <script src="js/store.js?v=3"></script>
+  <script src="js/scheduler.js?v=3"></script>
+  <script src="js/filters.js?v=3"></script>
+  <script src="js/drawscreen.js?v=3"></script>
+  <script src="js/app.js?v=3"></script>
 </body>
 </html>
