@@ -3,54 +3,151 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kanji Practice — Phase 1</title>
+  <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
   <header class="app-header">
     <h1>漢字 Kanji Practice</h1>
-    <p class="subtitle">Phase 1 — stroke order + draw-to-quiz</p>
   </header>
 
   <main class="app-main">
-    <!-- Kanji picker -->
-    <nav class="kanji-picker" id="kanji-picker" aria-label="Choose a kanji"></nav>
 
-    <!-- The character + its info -->
-    <section class="study-area">
-      <div class="writer-column">
-        <!-- HanziWriter draws into this element -->
-        <div id="writer-target" class="writer-target" aria-label="Kanji stroke area"></div>
+    <!-- ============ HOME ============ -->
+    <section id="screen-home" class="screen active">
+      <p class="home-counts" id="home-counts">—</p>
+      <div class="home-menu">
+        <button id="nav-learn" class="mode-card" type="button">
+          <span class="mode-emoji">🌱</span>
+          <span class="mode-title">Learn</span>
+          <span class="mode-desc">Pick up brand-new characters with guided practice.</span>
+        </button>
+        <button id="nav-quiz" class="mode-card" type="button">
+          <span class="mode-emoji">✎</span>
+          <span class="mode-title">Quiz</span>
+          <span class="mode-desc">Choose a set and write them from memory.</span>
+        </button>
+        <button id="nav-browse" class="mode-card" type="button">
+          <span class="mode-emoji">👁</span>
+          <span class="mode-title">Browse</span>
+          <span class="mode-desc">Look at stroke order, readings and meaning.</span>
+        </button>
+      </div>
+      <p class="home-foot"><button id="reset-progress" class="linkbtn" type="button">Reset progress</button></p>
+    </section>
 
-        <div class="controls">
-          <button id="btn-animate" class="btn btn-primary" type="button">▶ Animate strokes</button>
-          <button id="btn-quiz" class="btn" type="button">✎ Quiz me</button>
-          <button id="btn-reset" class="btn btn-ghost" type="button">↺ Reset</button>
-          <button id="btn-random" class="btn btn-ghost" type="button">🎲 Random</button>
+    <!-- ============ BROWSE ============ -->
+    <section id="screen-browse" class="screen">
+      <div class="screen-bar">
+        <button class="btn btn-ghost" data-home type="button">← Home</button>
+        <h2>Browse</h2>
+      </div>
+      <nav class="kanji-picker" id="browse-picker"></nav>
+      <div class="study-area">
+        <div class="writer-column">
+          <div id="browse-target" class="writer-target"></div>
+          <div class="controls">
+            <button id="browse-animate" class="btn btn-primary" type="button">▶ Animate</button>
+            <button id="browse-reset" class="btn btn-ghost" type="button">↺ Reset</button>
+            <button id="browse-random" class="btn btn-ghost" type="button">🎲 Random</button>
+          </div>
         </div>
+        <aside class="info-column">
+          <div class="info-card">
+            <div class="info-char" id="browse-char">水</div>
+            <div class="info-meaning" id="browse-meaning">water</div>
+            <dl class="readings">
+              <dt>On (音)</dt><dd id="browse-on">—</dd>
+              <dt>Kun (訓)</dt><dd id="browse-kun">—</dd>
+              <dt>Strokes</dt><dd id="browse-strokes">—</dd>
+            </dl>
+          </div>
+        </aside>
+      </div>
+    </section>
 
-        <p id="status" class="status" role="status" aria-live="polite">
-          Pick a kanji, then press “Animate strokes” or “Quiz me”.
-        </p>
+    <!-- ============ QUIZ SELECTION ============ -->
+    <section id="screen-quiz-select" class="screen">
+      <div class="screen-bar">
+        <button class="btn btn-ghost" data-home type="button">← Home</button>
+        <h2>Quiz — pick characters</h2>
+      </div>
+      <p class="hint">Tap to select the characters you want to be quizzed on.</p>
+      <div class="select-toolbar">
+        <button id="quiz-all" class="btn btn-ghost" type="button">Select all</button>
+        <button id="quiz-clear" class="btn btn-ghost" type="button">Clear</button>
+        <span class="spacer"></span>
+        <span id="quiz-count" class="count">0 selected</span>
+      </div>
+      <div id="quiz-grid" class="select-grid"></div>
+      <div class="screen-actions">
+        <button id="quiz-start" class="btn btn-primary" type="button" disabled>Start quiz →</button>
+      </div>
+    </section>
+
+    <!-- ============ LEARN SETUP ============ -->
+    <section id="screen-learn-setup" class="screen">
+      <div class="screen-bar">
+        <button class="btn btn-ghost" data-home type="button">← Home</button>
+        <h2>Learn new characters</h2>
+      </div>
+      <p class="hint">
+        New characters are introduced in study order. Each one is practiced across
+        4 steps (guided → order → start-points → from memory), mixed together so you
+        don't just memorise one before moving on.
+      </p>
+      <p class="learn-meta"><span id="learn-available">0</span> characters available to learn.</p>
+      <div class="learn-controls">
+        <label for="learn-count">How many this session?</label>
+        <select id="learn-count" class="select-input"></select>
+      </div>
+      <p class="learn-preview" id="learn-preview"></p>
+      <div class="screen-actions">
+        <button id="learn-start" class="btn btn-primary" type="button">Start learning →</button>
+      </div>
+    </section>
+
+    <!-- ============ DRAW (shared by Quiz + Learn) ============ -->
+    <section id="screen-draw" class="screen">
+      <div class="screen-bar">
+        <span class="draw-mode" id="draw-mode">Quiz</span>
+        <span class="draw-step" id="draw-step"></span>
+        <span class="spacer"></span>
+        <span class="draw-progress" id="draw-progress"></span>
       </div>
 
-      <aside class="info-column">
-        <div class="info-card">
-          <div class="info-char" id="info-char">水</div>
-          <div class="info-meaning" id="info-meaning">water</div>
-
-          <dl class="readings">
-            <dt>On (音)</dt>
-            <dd id="info-on">—</dd>
-            <dt>Kun (訓)</dt>
-            <dd id="info-kun">—</dd>
-            <dt>Strokes</dt>
-            <dd id="info-strokes">—</dd>
-          </dl>
+      <div class="draw-layout">
+        <div class="draw-main">
+          <div id="draw-target" class="writer-target"></div>
+          <p class="draw-prompt" id="draw-prompt"></p>
+          <p class="draw-status" id="draw-status" role="status" aria-live="polite"></p>
+          <div class="controls">
+            <button id="draw-reveal" class="btn btn-ghost" type="button">Show answer</button>
+            <button id="draw-skip" class="btn btn-ghost" type="button">Skip</button>
+            <button id="draw-next" class="btn btn-primary" type="button" hidden>Next →</button>
+          </div>
         </div>
-      </aside>
+
+        <aside class="cue-panel">
+          <h3 class="cue-heading">Cues</h3>
+          <div id="cue-settings" class="cue-settings"></div>
+          <div id="cue-content" class="cue-content"></div>
+        </aside>
+      </div>
     </section>
+
+    <!-- ============ DONE ============ -->
+    <section id="screen-done" class="screen">
+      <div class="done-card">
+        <div class="done-emoji">🎉</div>
+        <h2 id="done-title">Done</h2>
+        <p id="done-summary" class="done-summary"></p>
+        <p id="done-extra" class="done-extra"></p>
+        <button id="done-back" class="btn btn-primary" type="button">Continue</button>
+      </div>
+    </section>
+
   </main>
 
   <footer class="app-footer">
@@ -60,11 +157,10 @@
     </p>
   </footer>
 
-  <!-- Library (vendored locally so it works offline) -->
   <script src="vendor/hanzi-writer.min.js"></script>
-  <!-- Sample kanji metadata -->
   <script src="data/kanji-meta.js"></script>
-  <!-- App logic -->
+  <script src="js/store.js"></script>
+  <script src="js/drawscreen.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>
