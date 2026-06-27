@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kanji Practice — Phase 1</title>
+  <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>漢字 Kanji Practice</h1>
+    <p class="subtitle">Phase 1 — stroke order + draw-to-quiz</p>
+  </header>
+
+  <main class="app-main">
+    <!-- Kanji picker -->
+    <nav class="kanji-picker" id="kanji-picker" aria-label="Choose a kanji"></nav>
+
+    <!-- The character + its info -->
+    <section class="study-area">
+      <div class="writer-column">
+        <!-- HanziWriter draws into this element -->
+        <div id="writer-target" class="writer-target" aria-label="Kanji stroke area"></div>
+
+        <div class="controls">
+          <button id="btn-animate" class="btn btn-primary" type="button">▶ Animate strokes</button>
+          <button id="btn-quiz" class="btn" type="button">✎ Quiz me</button>
+          <button id="btn-reset" class="btn btn-ghost" type="button">↺ Reset</button>
+          <button id="btn-random" class="btn btn-ghost" type="button">🎲 Random</button>
+        </div>
+
+        <p id="status" class="status" role="status" aria-live="polite">
+          Pick a kanji, then press “Animate strokes” or “Quiz me”.
+        </p>
+      </div>
+
+      <aside class="info-column">
+        <div class="info-card">
+          <div class="info-char" id="info-char">水</div>
+          <div class="info-meaning" id="info-meaning">water</div>
+
+          <dl class="readings">
+            <dt>On (音)</dt>
+            <dd id="info-on">—</dd>
+            <dt>Kun (訓)</dt>
+            <dd id="info-kun">—</dd>
+            <dt>Strokes</dt>
+            <dd id="info-strokes">—</dd>
+          </dl>
+        </div>
+      </aside>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <p>
+      Stroke data: <a href="https://kanjivg.tagaini.net/" target="_blank" rel="noopener">KanjiVG</a> ·
+      Renderer: <a href="https://hanziwriter.org/" target="_blank" rel="noopener">HanziWriter</a>
+    </p>
+  </footer>
+
+  <!-- Library (vendored locally so it works offline) -->
+  <script src="vendor/hanzi-writer.min.js"></script>
+  <!-- Sample kanji metadata -->
+  <script src="data/kanji-meta.js"></script>
+  <!-- App logic -->
+  <script src="js/app.js"></script>
+</body>
+</html>

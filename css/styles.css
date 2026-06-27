@@ -1,0 +1,185 @@
+:root {
+  --bg: #f6f7f9;
+  --card: #ffffff;
+  --ink: #1f2933;
+  --muted: #6b7785;
+  --accent: #2f6fed;
+  --accent-ink: #ffffff;
+  --line: #e3e7ec;
+  --good: #2e9e6b;
+  --bad: #d6453d;
+  --radius: 14px;
+  --shadow: 0 1px 3px rgba(16, 24, 40, 0.08), 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Hiragino Kaku Gothic Pro",
+               "Noto Sans JP", sans-serif;
+  line-height: 1.5;
+}
+
+.app-header {
+  text-align: center;
+  padding: 1.5rem 1rem 0.5rem;
+}
+.app-header h1 { margin: 0; font-size: 1.6rem; }
+.subtitle { margin: 0.25rem 0 0; color: var(--muted); font-size: 0.9rem; }
+
+.app-main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Kanji picker row */
+.kanji-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  justify-content: center;
+  margin-bottom: 1.25rem;
+}
+.kanji-chip {
+  font-size: 1.4rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 1px solid var(--line);
+  background: var(--card);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+}
+.kanji-chip:hover { transform: translateY(-1px); border-color: var(--accent); }
+.kanji-chip.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
+}
+
+/* Study area: writer + info side by side, stacks on mobile */
+.study-area {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+@media (min-width: 680px) {
+  .study-area { grid-template-columns: 1.1fr 0.9fr; align-items: start; }
+}
+
+.writer-column {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* The square HanziWriter canvas, with a printed grid background */
+.writer-target {
+  width: 300px;
+  height: 300px;
+  max-width: 100%;
+  position: relative;
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px),
+    linear-gradient(to right, rgba(227,231,236,0.6) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(227,231,236,0.6) 1px, transparent 1px);
+  background-size: 100% 100%, 100% 100%, 50% 50%, 50% 50%;
+  background-position: 0 0, 0 0, 50% 50%, 50% 50%;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+}
+/* diagonal guide lines */
+.writer-target::before,
+.writer-target::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.writer-target::before {
+  background: linear-gradient(to bottom right, transparent calc(50% - 0.5px),
+              rgba(227,231,236,0.6) 50%, transparent calc(50% + 0.5px));
+}
+.writer-target::after {
+  background: linear-gradient(to bottom left, transparent calc(50% - 0.5px),
+              rgba(227,231,236,0.6) 50%, transparent calc(50% + 0.5px));
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1rem;
+}
+.btn {
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.btn:hover { border-color: var(--accent); }
+.btn-primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn-primary:hover { filter: brightness(1.05); }
+.btn-ghost { background: transparent; }
+
+.status {
+  margin-top: 1rem;
+  min-height: 1.5rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+.status.good { color: var(--good); font-weight: 600; }
+.status.bad  { color: var(--bad); }
+
+/* Info card */
+.info-column { display: flex; }
+.info-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+  width: 100%;
+  text-align: center;
+}
+.info-char { font-size: 3.5rem; line-height: 1; }
+.info-meaning {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 0.5rem 0 1rem;
+}
+.readings {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.4rem 1rem;
+  text-align: left;
+  margin: 0;
+}
+.readings dt { color: var(--muted); font-size: 0.85rem; padding-top: 0.15rem; }
+.readings dd { margin: 0; font-size: 1.05rem; }
+
+.app-footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 1.5rem 1rem 2rem;
+}
+.app-footer a { color: var(--muted); }
