@@ -30,6 +30,8 @@ window.DrawScreen = (function () {
   var done = false;          // current character finished (success or reveal)
   var advancing = false;     // guard against double-advance
   var tapHandler = null;
+  var advanceTimer = null;   // pending auto-advance timeout
+  var onBack = null;         // callback for the back button
 
   // ---- helpers ----
   function kataToHira(s) {
@@ -251,13 +253,16 @@ window.DrawScreen = (function () {
     t.vocabRevealed = true;
     renderCueContent(t.char);
 
+    // On a failed/given-up review attempt, reveal the correct character.
+    if (!success && !t.scaffold && writer) writer.showCharacter();
+
     if (success) setStatus("Correct" + (gaveUp ? "" : "!"), "good");
     else if (gaveUp) setStatus("Answer shown.", "bad");
-    else setStatus("Got there — " + mistakes + " mistake(s).", "bad");
+    else setStatus("Not quite — here's the correct form.", "bad");
 
     if (success && !t.scaffold) {
       setPrompt("Nice. Moving on…");
-      setTimeout(function () { advance(); }, AUTO_ADVANCE_MS);
+      advanceTimer = setTimeout(function () { advance(); }, AUTO_ADVANCE_MS);
     } else {
       setPrompt("Tap the character to continue.");
       armTap();
@@ -303,6 +308,7 @@ window.DrawScreen = (function () {
   function run(t) {
     task = t;
     done = false; advancing = false; task.vocabRevealed = false;
+    if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
     disarmTap();
     els.modeLabel.textContent = t.modeLabel || "";
     els.stepLabel.textContent = t.stepLabel || "";
@@ -329,11 +335,21 @@ window.DrawScreen = (function () {
     }
   }
 
-  function init(elements) {
-    els = elements;
-    els.reveal.addEventListener("click", onReveal);
-    els.skip.addEventListener("click", onSkip);
+  // Abort the current task without advancing (used by the back button).
+  function stop() {
+    if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+    disarmTap();
+    if (writer) { try { writer.cancelQuiz(); } catch (e) {} }
+    done = true; advancing = true; task = null;
   }
 
-  return { init: init, run: run };
+  function init(elements, callbacks) {
+    els = elements;
+    onBack = (callbacks && callbacks.onBack) || null;
+    els.reveal.addEventListener("click", onReveal);
+    els.skip.addEventListener("click", onSkip);
+    if (els.back) els.back.addEventListener("click", function () { if (onBack) onBack(); });
+  }
+
+  return { init: init, run: run, stop: stop };
 })();

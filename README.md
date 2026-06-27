@@ -9,54 +9,55 @@ Built in **phases**. This README reflects what works today.
 
 ## ✅ What works now
 
-Three modes, reached from the Home screen:
+Modes reached from the Home screen: **Learn**, **Review**, **Browse**, **Settings**.
+Learn and Review share **one kanji list** and **one session engine**, so mixing new
+and due characters behaves consistently.
 
 ### 🌱 Learn — pick up new characters
-Two modes:
-- **Next in order** (default) — choose how many new characters (up to 15) and the
-  app takes the next ones in study order.
-- **Choose specific** — hand-pick any characters (no limit), e.g. to bulk-add ones
-  you already know. Characters you've never studied get the full 4-step flow;
-  characters already in your review pool are just reviewed — all **mixed together**
-  in one interleaved session.
+Choose how to pick what to learn:
+- **Sequential** — a **slider (1–50)** picks the next new characters in study order.
+- **Choose your own** — drops you into the **shared list** (same filters/randomize as
+  Review), since choosing your own to learn is the same action as choosing to review.
 
-New characters are practiced across **4 progressively harder steps**:
-  1. **Guided** — faint whole character + the current stroke highlighted, in order.
-  2. **Order recall** — faint whole character, but you work out the stroke order.
-  3. **Start points** — character hidden; only a dot shows where the next stroke begins.
-  4. **Free recall** — no help at all; write it from memory.
+New characters are practiced across **4 progressively harder steps** (Guided → Order
+recall → Start points → Free recall), **interleaved** when learning several at once.
+A character **graduates into the review pool** after step 4.
 
-When learning several at once, the steps are **interleaved** so you don't cram one
-before moving on. A character **graduates into the review pool** after step 4.
-
-### ✎ Quiz — filter, sort and write from memory
-- **Always-on review tracking**: a banner shows which characters are **due for
-  review** (independent of any filters) and can add them in one tap.
-- **Filters** (combine with **AND**): not-reviewed-in (1 day … 6 months),
-  stroke count, radical, similar characters, group, historical difficulty,
-  learning stage.
-- **Sort** the session (frequency, fewest strokes, most overdue…) or flip on
-  **Randomize** to shuffle.
-- Then write each selected character from memory.
+### ✎ Review — the shared list: filter, sort, write from memory
+- **Always-on review tracking**: a **tappable** banner shows which characters are
+  **due for review** (independent of any filters) — tap it to review exactly those.
+- Each character shows its **status** (New / Learning / Due / Learned) in a
+  **distinct colour**.
+- **Filters** (combine with **AND**): status, not-reviewed-in (1 day … 6 months),
+  stroke count, radical, similar characters, group, historical difficulty.
+- **Sort** (frequency, fewest strokes, most overdue…) or **Randomize**.
+- Starting a session handles each character by its status: new ones get the
+  scaffolding, known ones get reviewed — mixed together.
 
 ### 👁 Browse — study stroke order
-- Look at any character with animated stroke order, readings, meaning, stroke
-  count and frequency.
+- Animated stroke order with readings, meaning, stroke count and frequency.
 
-### The draw screen (shared by Learn & Quiz)
+### ⚙️ Settings
+- **Reset progress** lives here now, behind **two confirmations**.
+
+### The draw screen (shared by Learn & Review)
 - The kanji is **never shown** while you draw — only your own strokes appear.
-- A **cue panel** with toggleable hints (remembered between sessions):
-  **Frequency rank**, **Meaning**, **Readings** (hiragana), and **Vocabulary**
-  (grouped by reading; ≥2 per reading and ≥8 total where the data has them).
-  - Before you draw, vocab is shown **in hiragana** with the quizzed kanji's
-    portion in **bold**. After you finish, it switches to the **real written form**.
+- A **back button** returns you to the list/menu you came from.
+- A **cue panel** with toggleable hints (remembered between sessions): Frequency
+  rank, Meaning, Readings (hiragana), and Vocabulary (grouped by reading; ≥2 per
+  reading and ≥8 total where the data has them).
+  - Before you draw, vocab is shown **in hiragana** with the quizzed kanji's portion
+    in **bold**; after you finish, it switches to the **real written form**.
   - Tap any vocab word to reveal its English meaning.
-- **Advancing**: a clean write auto-advances after ~1 second. A wrong attempt (or
-  any Learn step) waits until you **tap the character** to continue. No buttons,
-  no stroke countdown.
+- **Advancing**: a clean write auto-advances after ~1 second. A wrong attempt or any
+  Learn step waits until you **tap the character** to continue. No stroke countdown.
+- **Failure handling (Review)**: getting any stroke wrong on the first try reveals
+  the correct character, then (after you tap) you immediately **redraw it from memory
+  once**, the session continues, and that character is **queued once more at the very
+  end** of the session.
 
 Progress is saved on your device (localStorage); the Home screen shows how many
-characters are *new*, *learning*, or *in review*, plus how many are **due**.
+characters are *new*, *learning*, or *in review*, plus a tappable **due** count.
 
 ### Sample set
 14 beginner kanji: 一 二 三 人 日 月 火 水 木 金 土 山 川 口

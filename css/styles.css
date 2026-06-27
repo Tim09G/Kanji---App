@@ -277,6 +277,54 @@ html, body {
 }
 .vocab-reading:first-child { margin-top: 0; }
 
+/* ============ Phase 3 additions ============ */
+
+/* clickable due pill on Home */
+.due-pill {
+  display: block; margin: 0 auto 1.25rem; font: inherit; font-weight: 600;
+  background: #eef3fe; border: 1px solid #cfe0ff; color: #1f3a8a;
+  border-radius: 999px; padding: 0.5rem 1.1rem; cursor: pointer;
+}
+.due-pill:hover { background: #e0ebff; }
+
+/* due banner as a button (Review list) */
+.due-banner-btn { width: 100%; text-align: left; font: inherit; cursor: pointer; }
+.due-banner-btn:disabled { cursor: default; opacity: 0.8; }
+.due-banner-btn:not(:disabled):hover { background: #e0ebff; }
+
+/* settings */
+.settings-group { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 1.25rem; }
+.settings-group h3 { margin: 0 0 0.25rem; }
+.btn-danger { background: #fff; color: var(--bad); border-color: var(--bad); }
+.btn-danger:hover { background: var(--bad); color: #fff; border-color: var(--bad); }
+
+/* sequential slider */
+.slider-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin: 1rem 0; }
+.slider-row input[type="range"] { flex: 1; min-width: 200px; }
+.slider-value { font-size: 1.4rem; font-weight: 700; color: var(--accent); min-width: 2ch; text-align: center; }
+
+/* status chips in the shared list */
+.status-grid { grid-template-columns: repeat(auto-fill, minmax(4.2rem, 1fr)); }
+.status-grid .select-chip {
+  aspect-ratio: auto; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 0.5rem 0.25rem 0.45rem;
+}
+.chip-glyph { font-size: 1.6rem; line-height: 1; }
+.status-grid .chip-tag {
+  position: static; transform: none; font-size: 0.6rem; line-height: 1.1;
+  padding: 1px 5px; border-radius: 5px;
+}
+.chip-new { background: #eef1f5; color: #6b7785; }
+.chip-learning { background: #fff2d6; color: #8a5a00; }
+.chip-due { background: #fde2e0; color: #b3261e; }
+.chip-learned { background: #def5e8; color: #1f7a4d; }
+.chip-review { background: #def5e8; color: #1f7a4d; }
+.status-grid .select-chip.selected { background: var(--accent); border-color: var(--accent); }
+.status-grid .select-chip.selected .chip-glyph { color: var(--accent-ink); }
+.status-grid .select-chip.selected .chip-tag { background: rgba(255,255,255,0.9); color: var(--accent); }
+
+#draw-back { font-size: 0.85rem; padding: 0.4rem 0.6rem; }
+
 /* ============ footer ============ */
 .app-footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1.5rem 1rem 2rem; }
 .app-footer a { color: var(--muted); }

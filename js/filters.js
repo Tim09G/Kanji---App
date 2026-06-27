@@ -23,6 +23,30 @@ window.Filters = (function () {
   }
 
   var DEFS = {
+    // Learning status (New / Learning / Due for review / Learned).
+    status: {
+      id: "status",
+      label: "Status",
+      options: function () {
+        return [
+          { value: "new", label: "New" },
+          { value: "learning", label: "Learning" },
+          { value: "due", label: "Due for review" },
+          { value: "learned", label: "Learned" },
+        ];
+      },
+      predicate: function (v) {
+        return function (char) {
+          var p = Store.getProgress(char);
+          if (v === "new") return p.status === "new";
+          if (v === "learning") return p.status === "learning";
+          if (v === "due") return p.status === "review" && Scheduler.isDue(char);
+          if (v === "learned") return p.status === "review" && !Scheduler.isDue(char);
+          return true;
+        };
+      },
+    },
+
     // Time since last reviewed — graduated buckets spanning days to months.
     timeSinceReview: {
       id: "timeSinceReview",
@@ -124,32 +148,6 @@ window.Filters = (function () {
       },
       predicate: function (level) {
         return function (char) { return Scheduler.difficulty(char) === level; };
-      },
-    },
-
-    // How new / recently learned for the user.
-    recency: {
-      id: "recency",
-      label: "Learning stage",
-      options: function () {
-        return [
-          { value: "new", label: "New (not started)" },
-          { value: "learning", label: "Currently learning" },
-          { value: "fresh", label: "Recently graduated (<7d)" },
-          { value: "review", label: "In review pool" },
-        ];
-      },
-      predicate: function (stage) {
-        return function (char) {
-          var p = Store.getProgress(char);
-          if (stage === "new") return p.status === "new";
-          if (stage === "learning") return p.status === "learning";
-          if (stage === "review") return p.status === "review";
-          if (stage === "fresh") {
-            return p.status === "review" && p.graduatedAt && (Date.now() - p.graduatedAt) < 7 * 24 * 3600 * 1000;
-          }
-          return true;
-        };
       },
     },
   };

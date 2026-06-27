@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=3" />
+  <link rel="stylesheet" href="css/styles.css?v=4" />
 </head>
 <body>
   <header class="app-header">
@@ -17,16 +17,16 @@
     <!-- ============ HOME ============ -->
     <section id="screen-home" class="screen active">
       <p class="home-counts" id="home-counts">—</p>
-      <p class="home-due" id="home-due"></p>
+      <button id="home-due" class="due-pill" type="button" hidden></button>
       <div class="home-menu">
         <button id="nav-learn" class="mode-card" type="button">
           <span class="mode-emoji">🌱</span>
           <span class="mode-title">Learn</span>
-          <span class="mode-desc">Pick up brand-new characters with guided practice.</span>
+          <span class="mode-desc">Pick up new characters — sequentially or your own choice.</span>
         </button>
-        <button id="nav-quiz" class="mode-card" type="button">
+        <button id="nav-review" class="mode-card" type="button">
           <span class="mode-emoji">✎</span>
-          <span class="mode-title">Quiz</span>
+          <span class="mode-title">Review</span>
           <span class="mode-desc">Filter, sort and write characters from memory.</span>
         </button>
         <button id="nav-browse" class="mode-card" type="button">
@@ -34,8 +34,25 @@
           <span class="mode-title">Browse</span>
           <span class="mode-desc">Look at stroke order, readings and meaning.</span>
         </button>
+        <button id="nav-settings" class="mode-card" type="button">
+          <span class="mode-emoji">⚙️</span>
+          <span class="mode-title">Settings</span>
+          <span class="mode-desc">App options and resetting progress.</span>
+        </button>
       </div>
-      <p class="home-foot"><button id="reset-progress" class="linkbtn" type="button">Reset progress</button></p>
+    </section>
+
+    <!-- ============ SETTINGS ============ -->
+    <section id="screen-settings" class="screen">
+      <div class="screen-bar">
+        <button class="btn btn-ghost" data-home type="button">← Home</button>
+        <h2>Settings</h2>
+      </div>
+      <div class="settings-group">
+        <h3>Progress</h3>
+        <p class="hint">Erase all learning progress, schedules and stats stored on this device.</p>
+        <button id="reset-progress" class="btn btn-danger" type="button">Reset progress</button>
+      </div>
     </section>
 
     <!-- ============ BROWSE ============ -->
@@ -69,14 +86,53 @@
       </div>
     </section>
 
-    <!-- ============ QUIZ SELECTION ============ -->
-    <section id="screen-quiz-select" class="screen">
+    <!-- ============ LEARN ENTRY (Sequential vs Choose your own) ============ -->
+    <section id="screen-learn-entry" class="screen">
       <div class="screen-bar">
         <button class="btn btn-ghost" data-home type="button">← Home</button>
-        <h2>Quiz</h2>
+        <h2>Learn</h2>
+      </div>
+      <p class="hint">How would you like to choose what to learn?</p>
+      <div class="home-menu">
+        <button id="learn-seq-btn" class="mode-card" type="button">
+          <span class="mode-emoji">➡️</span>
+          <span class="mode-title">Sequential</span>
+          <span class="mode-desc">Let the app pick the next new characters in study order.</span>
+        </button>
+        <button id="learn-choose-btn" class="mode-card" type="button">
+          <span class="mode-emoji">✋</span>
+          <span class="mode-title">Choose your own</span>
+          <span class="mode-desc">Pick specific characters from the full list (with filters).</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ LEARN SEQUENTIAL (slider) ============ -->
+    <section id="screen-learn-seq" class="screen">
+      <div class="screen-bar">
+        <button class="btn btn-ghost" data-back="screen-learn-entry" type="button">← Back</button>
+        <h2>Learn — sequential</h2>
+      </div>
+      <p class="learn-meta"><span id="seq-available">0</span> new characters available.</p>
+      <div class="slider-row">
+        <label for="seq-slider">How many this session?</label>
+        <input type="range" id="seq-slider" min="1" max="50" value="5" />
+        <output id="seq-value" class="slider-value">5</output>
+      </div>
+      <p class="learn-preview" id="seq-preview"></p>
+      <div class="screen-actions">
+        <button id="seq-start" class="btn btn-primary" type="button">Start learning →</button>
+      </div>
+    </section>
+
+    <!-- ============ SHARED LIST (Review + Learn-choose-your-own) ============ -->
+    <section id="screen-list" class="screen">
+      <div class="screen-bar">
+        <button class="btn btn-ghost" data-back="auto" type="button">← Back</button>
+        <h2 id="list-title">Review</h2>
       </div>
 
-      <div id="quiz-due-banner" class="due-banner"></div>
+      <button id="list-due-banner" class="due-banner due-banner-btn" type="button"></button>
 
       <details class="filter-box" id="filter-box">
         <summary>Filters &amp; sorting <span class="filter-hint">(combine with AND)</span></summary>
@@ -87,73 +143,30 @@
           <span id="filter-match" class="count"></span>
         </div>
         <div class="order-row">
-          <label for="quiz-sort">Order:</label>
-          <select id="quiz-sort" class="select-input"></select>
-          <label class="cue-toggle"><input type="checkbox" id="quiz-random" /> Randomize</label>
+          <label for="list-sort">Order:</label>
+          <select id="list-sort" class="select-input"></select>
+          <label class="cue-toggle"><input type="checkbox" id="list-random" /> Randomize</label>
         </div>
       </details>
 
       <p class="hint">Tap characters to include them, or use the filters above.</p>
       <div class="select-toolbar">
-        <button id="quiz-all" class="btn btn-ghost" type="button">Select all</button>
-        <button id="quiz-clear" class="btn btn-ghost" type="button">Clear</button>
+        <button id="list-all" class="btn btn-ghost" type="button">Select all</button>
+        <button id="list-clear" class="btn btn-ghost" type="button">Clear</button>
         <span class="spacer"></span>
-        <span id="quiz-count" class="count">0 selected</span>
+        <span id="list-count" class="count">0 selected</span>
       </div>
-      <div id="quiz-grid" class="select-grid"></div>
+      <div id="list-grid" class="select-grid status-grid"></div>
       <div class="screen-actions">
-        <button id="quiz-start" class="btn btn-primary" type="button" disabled>Start quiz →</button>
+        <button id="list-start" class="btn btn-primary" type="button" disabled>Start →</button>
       </div>
     </section>
 
-    <!-- ============ LEARN SETUP ============ -->
-    <section id="screen-learn-setup" class="screen">
-      <div class="screen-bar">
-        <button class="btn btn-ghost" data-home type="button">← Home</button>
-        <h2>Learn</h2>
-      </div>
-
-      <div class="learn-mode-toggle">
-        <label class="seg"><input type="radio" name="learn-mode" value="count" checked /> <span>Next in order</span></label>
-        <label class="seg"><input type="radio" name="learn-mode" value="manual" /> <span>Choose specific</span></label>
-      </div>
-
-      <!-- count mode -->
-      <div id="learn-count-pane">
-        <p class="hint">
-          New characters are introduced in study order, each practiced across 4
-          interleaved steps (guided → order → start-points → from memory).
-        </p>
-        <p class="learn-meta"><span id="learn-available">0</span> characters available to learn.</p>
-        <div class="learn-controls">
-          <label for="learn-count">How many this session?</label>
-          <select id="learn-count" class="select-input"></select>
-        </div>
-        <p class="learn-preview" id="learn-preview"></p>
-      </div>
-
-      <!-- manual mode -->
-      <div id="learn-manual-pane" hidden>
-        <p class="hint">
-          Pick any characters (no limit). Ones you've never studied get the full
-          4-step guided flow; ones already in your review pool are just reviewed —
-          all mixed together in one session.
-        </p>
-        <div class="select-toolbar">
-          <span id="learn-manual-count" class="count">0 selected</span>
-        </div>
-        <div id="learn-manual-grid" class="select-grid"></div>
-      </div>
-
-      <div class="screen-actions">
-        <button id="learn-start" class="btn btn-primary" type="button">Start →</button>
-      </div>
-    </section>
-
-    <!-- ============ DRAW (shared by Quiz + Learn) ============ -->
+    <!-- ============ DRAW (shared by Review + Learn) ============ -->
     <section id="screen-draw" class="screen">
       <div class="screen-bar">
-        <span class="draw-mode" id="draw-mode">Quiz</span>
+        <button id="draw-back" class="btn btn-ghost" type="button">← Back</button>
+        <span class="draw-mode" id="draw-mode">Review</span>
         <span class="draw-step" id="draw-step"></span>
         <span class="spacer"></span>
         <span class="draw-progress" id="draw-progress"></span>
@@ -199,11 +212,11 @@
   </footer>
 
   <script src="vendor/hanzi-writer.min.js"></script>
-  <script src="data/kanji-meta.js?v=3"></script>
-  <script src="js/store.js?v=3"></script>
-  <script src="js/scheduler.js?v=3"></script>
-  <script src="js/filters.js?v=3"></script>
-  <script src="js/drawscreen.js?v=3"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="data/kanji-meta.js?v=4"></script>
+  <script src="js/store.js?v=4"></script>
+  <script src="js/scheduler.js?v=4"></script>
+  <script src="js/filters.js?v=4"></script>
+  <script src="js/drawscreen.js?v=4"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>
