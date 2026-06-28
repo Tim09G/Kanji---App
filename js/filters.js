@@ -172,7 +172,7 @@ window.Filters = (function () {
     study: { label: "Study order", cmp: null },
     strokesAsc: { label: "Increasing stroke count", cmp: function (a, b) { return meta(a).strokeCount - meta(b).strokeCount; } },
     freqAsc: { label: "Frequency (most common first)", cmp: function (a, b) { return meta(a).freq - meta(b).freq; } },
-    dueFirst: { label: "Most overdue first", cmp: function (a, b) { return Scheduler.daysSinceReview(b) - Scheduler.daysSinceReview(a); } },
+    dueFirst: { label: "Most overdue first", cmp: function (a, b) { return Scheduler.overdueDays(b) - Scheduler.overdueDays(a); } },
   };
   var DEFAULT_SORT = "random";
 

@@ -88,10 +88,24 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
 
 ## 🧭 Decisions to revisit
 
-- **Spaced repetition is a lightweight placeholder.** `js/scheduler.js` uses a
-  simple interval ladder (correct → longer gap, wrong → reset) so due-dates and
-  the "due for review" flagging work today. It's deliberately a separate module
-  so it can be swapped for **FSRS** later without touching the filters or UI.
+- **Spaced repetition uses real FSRS** (`js/scheduler.js`, backed by the vendored
+  [ts-fsrs](https://github.com/open-spaced-repetition/ts-fsrs) library). Every
+  attempt feeds a 4-point rating into FSRS, which returns the next interval/due
+  date; that drives "due for review", "most overdue" sorting and the home count.
+  Per-kanji FSRS card state (stability, difficulty, due, reps, lapses…) is stored
+  in localStorage. Notes on configuration:
+  - **Rating mapping** from the app's signals: **Again** = needed a hint / gave up /
+    skipped; **Hard** = clean completion but with ≥1 stroke redo; **Good** = clean
+    pass with no redos. **Easy is currently unused** — there's no reliable existing
+    signal to separate it from Good, so clean passes default to Good (flagged).
+  - **Desired retention** = FSRS standard default (0.9); not user-adjustable yet.
+  - **Short-term (minute-scale) learning steps are disabled** so intervals are
+    day-scale from the first review — within-session learning is already handled by
+    the app's Learn scaffolding and failure side-loop.
+  - A newly-graduated kanji is now scheduled a few days out (Good → ~3 days) rather
+    than being immediately due.
+  - The **FSRS-derived Difficulty filter categories and mastery-level breakdown**
+    are a deferred follow-up (read-only views into FSRS state).
 - **What counts as "graduating" from Learn step 4:** completing the character once
   (you may retry strokes). Easy to make stricter later — see `Store.graduate` /
   `runLearnSession` in the code.
@@ -149,7 +163,7 @@ Press `Ctrl + C` to stop the server.
 index.html            The page + all screens (Home, Browse, Quiz, Learn, Draw, Done)
 css/styles.css        Styling
 js/store.js           Saves progress + cue settings (localStorage)
-js/scheduler.js       Spaced-repetition due dates (separate; swappable for FSRS)
+js/scheduler.js       Spaced-repetition scheduling — real FSRS (vendored ts-fsrs)
 js/filters.js         Quiz filter/sort/shuffle "session builder"
 js/drawscreen.js      The shared "draw a character" screen + cue panel
 js/app.js             Screen router + Browse / Quiz / Learn controllers

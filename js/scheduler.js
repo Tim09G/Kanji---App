@@ -1,101 +1,147 @@
 /*
- * scheduler.js — lightweight spaced-repetition scheduler.
+ * scheduler.js — spaced-repetition scheduler, backed by FSRS (ts-fsrs).
  *
- * Deliberately separate from the "what do I study now" logic (filters / session
- * builder). This module only answers: given a review result, WHEN is an item due
- * next, and WHICH items are due now. It is a simple interval ladder for now and
- * is meant to be swapped for FSRS in a later phase without touching the UI or the
- * filter system — they only call recordReview / isDue / dueChars / stats helpers.
+ * Separate from the "what do I study now" logic (filters / session builder).
+ * It answers: given a review result, WHEN is a kanji due next, and WHICH are due
+ * now. The real FSRS algorithm (ts-fsrs, vendored) computes the next interval /
+ * due date from the 4-point Again/Hard/Good/Easy rating.
+ *
+ * Rating mapping from the app's existing signals (Phase 4/5 redo→hint system):
+ *   Again — failed: needed a hint, gave up, or skipped.
+ *   Hard  — completed correctly but with at least one stroke redo (no hint).
+ *   Good  — clean pass (no redos, no hint).
+ *   Easy  — currently UNUSED: the app has no reliable signal to separate Easy
+ *           from Good, so clean passes default to Good. (Flagged for the user.)
+ *
+ * Desired retention: FSRS standard default (0.9), not user-adjustable this round.
+ *
+ * Per-kanji FSRS card state is persisted in Store under progress[char].fsrs.
  */
 window.Scheduler = (function () {
   "use strict";
 
   var DAY = 24 * 60 * 60 * 1000;
-  // Interval ladder in days. A correct answer steps up; a wrong answer resets.
-  var LADDER = [1, 3, 7, 14, 30, 60, 120, 240];
-
   function now() { return Date.now(); }
 
-  function srsOf(char) {
-    var p = Store.getProgress(char);
-    return p.srs || { idx: -1, interval: 0, due: null, lastReviewed: null, reps: 0, lapses: 0 };
+  // FSRS instance with standard default desired retention (request_retention = 0.9).
+  // enable_short_term is turned OFF so intervals are day-scale from the first
+  // review — within-session learning is already handled by the app's own Learn
+  // scaffolding and failure side-loop, so sub-day (minute) FSRS steps would
+  // conflict and surface "due" items again minutes later in the same session.
+  var lib = window.FSRS;
+  var f = lib.fsrs(lib.generatorParameters({ enable_short_term: false }));
+  var Rating = lib.Rating;   // Again=1, Hard=2, Good=3, Easy=4
+
+  // ---- card storage (serialised FSRS Card) ----
+  function rawCard(char) { return Store.getProgress(char).fsrs || null; }
+
+  // Build a CardInput ts-fsrs accepts (due/last_review as epoch ms, state numeric).
+  function cardInput(char) {
+    var c = rawCard(char);
+    if (!c) return lib.createEmptyCard(now());
+    return {
+      due: c.due, stability: c.stability, difficulty: c.difficulty,
+      elapsed_days: c.elapsed_days, scheduled_days: c.scheduled_days,
+      learning_steps: c.learning_steps || 0, reps: c.reps, lapses: c.lapses,
+      state: c.state, last_review: c.last_review != null ? c.last_review : null,
+    };
   }
-  function statsOf(char) {
-    var p = Store.getProgress(char);
-    return p.stats || { attempts: 0, mistakes: 0 };
+  function serialize(card) {
+    return {
+      due: +new Date(card.due), stability: card.stability, difficulty: card.difficulty,
+      elapsed_days: card.elapsed_days, scheduled_days: card.scheduled_days,
+      learning_steps: card.learning_steps || 0, reps: card.reps, lapses: card.lapses,
+      state: card.state, last_review: card.last_review != null ? +new Date(card.last_review) : null,
+    };
   }
 
-  // Record the outcome of a review/quiz attempt.
-  //   success  : true if written correctly with no mistakes
-  //   mistakes : number of wrong strokes during the attempt
-  function recordReview(char, success, mistakes) {
-    var srs = srsOf(char);
+  function statsOf(char) { return Store.getProgress(char).stats || { attempts: 0, mistakes: 0 }; }
+
+  // ---- rating from an app result ----
+  function ratingFor(result) {
+    if (result.skipped || result.gaveUp || result.hintShown) return Rating.Again;
+    if ((result.mistakes || 0) >= 1) return Rating.Hard;   // at least one redo
+    return Rating.Good;                                     // clean pass
+  }
+
+  // Feed one attempt's rating into FSRS and persist the new card.
+  function review(char, rating, when) {
+    var t = when || now();
+    var item = f.next(cardInput(char), t, rating);   // { card, log }
+    var saved = serialize(item.card);
+    Store.saveProgress(char, { fsrs: saved });
+    return saved;
+  }
+
+  // Apply a full app result (review-mode attempt or learn-mode graduation).
+  function applyResult(char, result) {
     var stats = statsOf(char);
-
     stats.attempts += 1;
-    stats.mistakes += (mistakes || 0);
-
-    if (success) {
-      srs.idx = Math.min((srs.idx < 0 ? 0 : srs.idx + 1), LADDER.length - 1);
-      srs.reps += 1;
-    } else {
-      srs.idx = 0;
-      srs.lapses += 1;
-    }
-    srs.interval = LADDER[Math.max(0, srs.idx)];
-    srs.lastReviewed = now();
-    srs.due = now() + srs.interval * DAY;
-
-    Store.saveProgress(char, { srs: srs, stats: stats });
-    return srs;
+    stats.mistakes += (result.mistakes || 0);
+    Store.saveProgress(char, { stats: stats });
+    return review(char, ratingFor(result));
   }
 
-  // When a character graduates from Learn, seed its schedule so it shows as due.
-  function onGraduate(char) {
-    var srs = srsOf(char);
-    if (srs.due == null) {
-      srs.idx = 0; srs.interval = LADDER[0];
-      srs.lastReviewed = now(); srs.due = now(); // due immediately for first review
-      Store.saveProgress(char, { srs: srs });
-    }
-  }
+  // ---- due / scheduling queries (all from FSRS card.due) ----
+  function dueDate(char) { var c = rawCard(char); return c ? c.due : null; }
 
   function isDue(char) {
-    var p = Store.getProgress(char);
-    if (p.status !== "review") return false;
-    var srs = srsOf(char);
-    return srs.due == null || srs.due <= now();
+    if (Store.getProgress(char).status !== "review") return false;
+    var due = dueDate(char);
+    return due == null || due <= now();   // never-scheduled review items count as due
   }
+  function dueChars() { return Store.reviewPool().filter(isDue); }
 
-  // Characters in the review pool that are due now (or never reviewed yet).
-  function dueChars() {
-    return Store.reviewPool().filter(isDue);
+  // Days a card is past its due date (negative = not yet due). Used by "most overdue".
+  function overdueDays(char) {
+    var due = dueDate(char);
+    if (due == null) return Infinity;     // never scheduled → maximally overdue
+    return (now() - due) / DAY;
   }
-
   function daysSinceReview(char) {
-    var srs = srsOf(char);
-    if (!srs.lastReviewed) return Infinity; // never reviewed → "infinitely long ago"
-    return (now() - srs.lastReviewed) / DAY;
+    var c = rawCard(char);
+    if (!c || c.last_review == null) return Infinity;
+    return (now() - c.last_review) / DAY;
   }
 
-  // Coarse difficulty bucket from historical performance.
+  // Preview the next interval (days) for each rating without committing — for the
+  // verification walkthrough / future UI.
+  function previewIntervals(char, when) {
+    var t = when || now();
+    var out = {};
+    [["again", Rating.Again], ["hard", Rating.Hard], ["good", Rating.Good], ["easy", Rating.Easy]].forEach(function (p) {
+      var item = f.next(cardInput(char), t, p[1]);
+      out[p[0]] = { due: +new Date(item.card.due), days: Math.round((+new Date(item.card.due) - t) / DAY * 10) / 10, stability: item.card.stability };
+    });
+    return out;
+  }
+
+  // Coarse historical-difficulty bucket (unchanged; the FSRS-derived difficulty
+  // filter/mastery views are a deferred follow-up, not built this round).
   function difficulty(char) {
-    var s = statsOf(char), srs = srsOf(char);
+    var s = statsOf(char), c = rawCard(char) || { lapses: 0 };
     if (s.attempts === 0) return "unseen";
     var missRate = s.mistakes / Math.max(1, s.attempts);
-    if (srs.lapses >= 2 || missRate >= 1.5) return "hard";
-    if (srs.lapses === 1 || missRate >= 0.5) return "medium";
+    if (c.lapses >= 2 || missRate >= 1.5) return "hard";
+    if (c.lapses === 1 || missRate >= 0.5) return "medium";
     return "easy";
   }
 
+  function cardOf(char) { return rawCard(char); }
+
   return {
-    recordReview: recordReview,
-    onGraduate: onGraduate,
+    Rating: Rating,
+    ratingFor: ratingFor,
+    review: review,
+    applyResult: applyResult,
     isDue: isDue,
     dueChars: dueChars,
+    dueDate: dueDate,
+    overdueDays: overdueDays,
     daysSinceReview: daysSinceReview,
+    previewIntervals: previewIntervals,
     difficulty: difficulty,
-    srsOf: srsOf,
     statsOf: statsOf,
+    cardOf: cardOf,
   };
 })();

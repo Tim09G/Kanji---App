@@ -391,7 +391,11 @@
       if (r.skipped) return; // user skipped this step; don't progress or re-queue
       if (r.success) {
         if (t.step < 4) { Store.recordLearnStep(t.char, t.step); queue.push(makeLearn(t.char, t.step + 1)); }
-        else { Store.recordLearnStep(t.char, 4); Store.graduate(t.char); Scheduler.onGraduate(t.char); graduated[t.char] = true; }
+        else {
+          Store.recordLearnStep(t.char, 4); Store.graduate(t.char);
+          Scheduler.applyResult(t.char, r);   // first FSRS review, rated from the step-4 attempt
+          graduated[t.char] = true;
+        }
       } else {
         // B4: fall back one step (min 1); only progress forward on a pass.
         queue.push(makeLearn(t.char, Math.max(1, t.step - 1)));
@@ -399,7 +403,7 @@
     }
 
     function handleReview(t, r) {
-      Scheduler.recordReview(t.char, r.success, r.mistakes);
+      Scheduler.applyResult(t.char, r);   // feed Again/Hard/Good into FSRS
       if (r.success) return;
       if (reviewedSet[t.char]) failedSet[t.char] = true; // A2: distinct kanji that failed
       if (t.isExtra) return;                              // final attempt failed -> terminal
