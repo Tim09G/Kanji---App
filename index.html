@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=4" />
+  <link rel="stylesheet" href="css/styles.css?v=5" />
 </head>
 <body>
   <header class="app-header">
@@ -134,18 +134,19 @@
 
       <button id="list-due-banner" class="due-banner due-banner-btn" type="button"></button>
 
+      <!-- Sort is always visible; Random is the default order. -->
+      <div class="order-bar">
+        <label for="list-sort"><strong>Order</strong></label>
+        <select id="list-sort" class="select-input"></select>
+      </div>
+
       <details class="filter-box" id="filter-box">
-        <summary>Filters &amp; sorting <span class="filter-hint">(combine with AND)</span></summary>
+        <summary>Filters <span class="filter-hint">(combine with AND)</span></summary>
         <div id="filter-rows" class="filter-rows"></div>
         <div class="filter-actions">
           <button id="filter-apply" class="btn btn-primary" type="button">Apply filters</button>
           <button id="filter-reset" class="btn btn-ghost" type="button">Reset filters</button>
           <span id="filter-match" class="count"></span>
-        </div>
-        <div class="order-row">
-          <label for="list-sort">Order:</label>
-          <select id="list-sort" class="select-input"></select>
-          <label class="cue-toggle"><input type="checkbox" id="list-random" /> Randomize</label>
         </div>
       </details>
 
@@ -212,11 +213,12 @@
   </footer>
 
   <script src="vendor/hanzi-writer.min.js"></script>
-  <script src="data/kanji-meta.js?v=4"></script>
-  <script src="js/store.js?v=4"></script>
-  <script src="js/scheduler.js?v=4"></script>
-  <script src="js/filters.js?v=4"></script>
-  <script src="js/drawscreen.js?v=4"></script>
-  <script src="js/app.js?v=4"></script>
+  <script src="data/kanji-meta.js?v=5"></script>
+  <script src="data/kanji-extra.js?v=5"></script>
+  <script src="js/store.js?v=5"></script>
+  <script src="js/scheduler.js?v=5"></script>
+  <script src="js/filters.js?v=5"></script>
+  <script src="js/drawscreen.js?v=5"></script>
+  <script src="js/app.js?v=5"></script>
 </body>
 </html>

@@ -47,20 +47,28 @@ A character **graduates into the review pool** after step 4.
   rank, Meaning, Readings (hiragana), and Vocabulary (grouped by reading; ≥2 per
   reading and ≥8 total where the data has them).
   - Before you draw, vocab is shown **in hiragana** with the quizzed kanji's portion
-    in **bold**; after you finish, it switches to the **real written form**.
-  - Tap any vocab word to reveal its English meaning.
-- **Advancing**: a clean write auto-advances after ~1 second. A wrong attempt or any
-  Learn step waits until you **tap the character** to continue. No stroke countdown.
-- **Failure handling (Review)**: getting any stroke wrong on the first try reveals
-  the correct character, then (after you tap) you immediately **redraw it from memory
-  once**, the session continues, and that character is **queued once more at the very
-  end** of the session.
+    in **bold**; after you finish, it switches to the **written form + hiragana +
+    English** together, and the character's **radical** is revealed in a distinct colour.
+- **Per-stroke help**: get a stroke wrong and you get one redo; miss again and a
+  **hint** is shown — repeating per stroke until the character is done.
+- **Advancing**: a clean write auto-advances after ~1 second (tap during that second
+  to pause and hold). A failed character is held until you tap.
+- **Failure handling (Review)**: a character that needed a hint reveals the correct
+  form and holds; after you tap you immediately redraw it at **scaffolding step 3**,
+  the session continues, and it's **queued once more at the end**. Fail the step-3
+  redo and it's retried again a few characters later; only once a redo succeeds does
+  the end-of-session attempt get queued.
+- **Learn step fallback**: failing a Learn step drops you back one step; you only
+  advance after passing.
+- **Scoring** counts **distinct kanji** (e.g. 3 reviewed, 1 failed → 2/3), not the
+  extra retry attempts a failure generates.
 
-Progress is saved on your device (localStorage); the Home screen shows how many
-characters are *new*, *learning*, or *in review*, plus a tappable **due** count.
+Progress is saved on your device (localStorage); the Home screen shows **total
+learned** and a tappable **due-for-review** count that updates live.
 
 ### Sample set
-14 beginner kanji: 一 二 三 人 日 月 火 水 木 金 土 山 川 口
+~104 kanji: the 14 hand-authored beginner kanji (with rich vocabulary) plus ~90
+more (JLPT N5/N4 by frequency) generated from an open KANJIDIC2-derived dataset.
 
 Works **offline** — the renderer and all stroke data are bundled in the repo.
 
@@ -79,11 +87,14 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
   auto-advance and the difficulty/scheduler tracking).
 - **Study order** is the curated list order. Real ordering by JLPT / frequency
   comes with full KANJIDIC2 data.
-- **Vocabulary** is a hand-authored set (~6–8 words per kanji) for now; JMdict
-  integration is a later phase. Stroke counts, frequency ranks and radicals come
-  from an open KANJIDIC2-derived dataset.
-- **"Group (of 50)" and similar-character lists** are minimal with only 14 sample
-  kanji — the mechanism is there and scales when the full kanji set is loaded.
+- **Vocabulary** is hand-authored (~6–8 words) only for the 14 core kanji; the ~90
+  generated kanji have full metadata (meaning/readings/stroke/freq/radical) but no
+  vocabulary or similar-character lists yet. JMdict integration is a later phase.
+- **Radicals** use the dataset's WaniKani-style names (e.g. "Water") so the radical
+  filter groups consistently across all kanji; proper Kangxi radical glyphs come
+  with full KANJIDIC2 radical data.
+- **Home counts** show total-learned and due-for-review; a mastery-level breakdown
+  is a planned future addition (TODO in `renderHome`).
 
 ---
 
@@ -118,7 +129,8 @@ js/scheduler.js       Spaced-repetition due dates (separate; swappable for FSRS)
 js/filters.js         Quiz filter/sort/shuffle "session builder"
 js/drawscreen.js      The shared "draw a character" screen + cue panel
 js/app.js             Screen router + Browse / Quiz / Learn controllers
-data/kanji-meta.js    Meanings, readings, vocabulary for the sample kanji
+data/kanji-meta.js    Curated metadata + vocabulary for the 14 core kanji
+data/kanji-extra.js   Auto-generated metadata for ~90 more kanji (KANJIDIC2-derived)
 data/kanji/*.json     Stroke-order data per kanji (KanjiVG → HanziWriter format)
 vendor/               The HanziWriter library (bundled so it works offline)
 ```

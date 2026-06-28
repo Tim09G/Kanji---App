@@ -325,6 +325,19 @@ html, body {
 
 #draw-back { font-size: 0.85rem; padding: 0.4rem 0.6rem; }
 
+/* ============ Phase 4 additions ============ */
+.order-bar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
+.order-bar label { color: var(--ink); }
+
+/* radical revealed after completing a character (distinct colour) */
+.radical-reveal { color: #b3261e; font-weight: 700; }
+
+/* post-draw vocab: written form + reading + meaning together */
+.vocab-jp { font-size: 1.15rem; font-weight: 600; }
+
+/* the list grid can get long with the expanded set */
+.status-grid { max-height: 60vh; overflow-y: auto; padding: 2px; }
+
 /* ============ footer ============ */
 .app-footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1.5rem 1rem 2rem; }
 .app-footer a { color: var(--muted); }

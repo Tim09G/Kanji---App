@@ -160,19 +160,22 @@ window.Filters = (function () {
     });
   }
 
-  // Sorting for the final session order.
+  // Ordering for the session. "Random" is the default.
   var SORTS = {
+    random: { label: "Random", random: true },
     study: { label: "Study order", cmp: null },
-    freqAsc: { label: "Most frequent first", cmp: function (a, b) { return meta(a).freq - meta(b).freq; } },
-    strokesAsc: { label: "Fewest strokes first", cmp: function (a, b) { return meta(a).strokeCount - meta(b).strokeCount; } },
+    strokesAsc: { label: "Increasing stroke count", cmp: function (a, b) { return meta(a).strokeCount - meta(b).strokeCount; } },
+    freqAsc: { label: "Frequency (most common first)", cmp: function (a, b) { return meta(a).freq - meta(b).freq; } },
     dueFirst: { label: "Most overdue first", cmp: function (a, b) { return Scheduler.daysSinceReview(b) - Scheduler.daysSinceReview(a); } },
   };
+  var DEFAULT_SORT = "random";
 
   function sortChars(chars, sortId) {
+    var s = SORTS[sortId] || SORTS[DEFAULT_SORT];
+    if (s.random) return shuffle(chars);
     var order = allChars();
     var out = chars.slice().sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); });
-    var s = SORTS[sortId];
-    if (s && s.cmp) out.sort(s.cmp);
+    if (s.cmp) out.sort(s.cmp);
     return out;
   }
 
@@ -185,5 +188,5 @@ window.Filters = (function () {
     return a;
   }
 
-  return { DEFS: DEFS, SORTS: SORTS, apply: apply, sortChars: sortChars, shuffle: shuffle };
+  return { DEFS: DEFS, SORTS: SORTS, DEFAULT_SORT: DEFAULT_SORT, apply: apply, sortChars: sortChars, shuffle: shuffle };
 })();

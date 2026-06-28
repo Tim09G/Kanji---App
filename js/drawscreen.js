@@ -32,6 +32,7 @@ window.DrawScreen = (function () {
   var tapHandler = null;
   var advanceTimer = null;   // pending auto-advance timeout
   var onBack = null;         // callback for the back button
+  var hintShown = false;     // did the character ever need a hint (= overall failure)
 
   // ---- helpers ----
   function kataToHira(s) {
@@ -142,6 +143,19 @@ window.DrawScreen = (function () {
       root.appendChild(vb);
     }
 
+    // After completing the character, reveal its radical in a distinct colour (D5).
+    if (task && task.vocabRevealed && meta.radical) {
+      var radBlock = block("Radical");
+      var rv = document.createElement("div");
+      rv.className = "cue-value";
+      var rad = document.createElement("span");
+      rad.className = "radical-reveal";
+      rad.textContent = meta.radical.char + (meta.radical.name && meta.radical.name !== meta.radical.char ? " (" + meta.radical.name + ")" : "");
+      rv.appendChild(rad);
+      radBlock.appendChild(rv);
+      root.appendChild(radBlock);
+    }
+
     if (!root.children.length) {
       var empty = document.createElement("p");
       empty.className = "cue-empty";
@@ -150,35 +164,35 @@ window.DrawScreen = (function () {
     }
   }
 
+  function readingText(w) { return w.r.map(function (s) { return s.t; }).join(""); }
+
   function vocabItem(w) {
     var item = document.createElement("div");
     item.className = "vocab-item";
-    var btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "vocab-word";
 
     if (task && task.vocabRevealed) {
-      // after drawing: show the real written form (kanji/kana mixed)
-      btn.textContent = w.jp;
-    } else {
-      // before drawing: hiragana only, target-kanji portion in bold
-      w.r.forEach(function (seg) {
-        var span = document.createElement("span");
-        span.textContent = seg.t;
-        if (seg.b) span.className = "vocab-target";
-        btn.appendChild(span);
-      });
+      // After drawing: written form + hiragana reading + English, all together (D4).
+      var jp = document.createElement("span"); jp.className = "vocab-jp"; jp.textContent = w.jp;
+      var rd = document.createElement("span"); rd.className = "vocab-gloss"; rd.textContent = "（" + readingText(w) + "）";
+      var en = document.createElement("span"); en.className = "vocab-gloss"; en.textContent = " — " + w.en;
+      item.appendChild(jp); item.appendChild(rd); item.appendChild(en);
+      return item;
     }
+
+    // Before drawing: hiragana only, target-kanji portion in bold; tap for English.
+    var btn = document.createElement("button");
+    btn.type = "button"; btn.className = "vocab-word";
+    w.r.forEach(function (seg) {
+      var span = document.createElement("span");
+      span.textContent = seg.t;
+      if (seg.b) span.className = "vocab-target";
+      btn.appendChild(span);
+    });
     btn.title = w.en;
-
     var gloss = document.createElement("span");
-    gloss.className = "vocab-gloss";
-    gloss.textContent = " — " + w.en;
-    gloss.hidden = true;
+    gloss.className = "vocab-gloss"; gloss.textContent = " — " + w.en; gloss.hidden = true;
     btn.addEventListener("click", function () { gloss.hidden = !gloss.hidden; });
-
-    item.appendChild(btn);
-    item.appendChild(gloss);
+    item.appendChild(btn); item.appendChild(gloss);
     return item;
   }
 
@@ -221,14 +235,17 @@ window.DrawScreen = (function () {
   function startQuiz(level) {
     writer.quiz({
       leniency: level === "guided" ? 1.25 : 1.0,
-      showHintAfterMisses: level === "guided" ? 1 : 9999,
+      // One redo per stroke, then auto-show the hint on the 2nd miss (B1).
+      showHintAfterMisses: 2,
       onCorrectStroke: function (info) {
-        // no stroke-order countdown shown — just advance the visual helpers
         var nextStroke = info.strokeNum + 1;
         if (level === "guided" && info.strokesRemaining > 0) writer.highlightStroke(nextStroke);
         if (level === "start") showStartMarker(nextStroke);
       },
-      onMistake: function () { /* countdown removed; silent */ },
+      onMistake: function (info) {
+        // A hint is shown once a stroke has been missed twice -> overall failure.
+        if (info && info.mistakesOnStroke >= 2) hintShown = true;
+      },
       onComplete: function (summary) {
         clearMarker();
         var mistakes = summary && typeof summary.totalMistakes === "number" ? summary.totalMistakes : 0;
@@ -239,39 +256,67 @@ window.DrawScreen = (function () {
     if (level === "start") showStartMarker(0);
   }
 
-  // Called when the character is complete (or revealed). Switches vocab to the
-  // written form and decides whether to auto-advance or wait for a tap.
+  // Called when the character is complete (or revealed). Reveals vocab/radical
+  // and decides whether to hold (review failure) or auto-advance (cancelable).
   function finish(mistakes, gaveUp) {
     if (done) return;
     done = true;
     var t = task;
     t._mistakes = mistakes;
-    var success = !gaveUp && mistakes === 0;
+    // Success = completed without ever needing a hint, and didn't give up (B1/B2).
+    var success = !gaveUp && !hintShown;
     t._success = success;
+    t._hintShown = hintShown;
 
-    // reveal the real written form of the vocabulary now that drawing is done
+    // Reveal vocab written form + readings + meaning, and the radical (D4/D5).
     t.vocabRevealed = true;
     renderCueContent(t.char);
 
-    // On a failed/given-up review attempt, reveal the correct character.
-    if (!success && !t.scaffold && writer) writer.showCharacter();
+    var isReviewFail = (t.kind === "review" && !success);
+    // On a failed/given-up review attempt, reveal the correct character (B2.1).
+    if (isReviewFail && writer) writer.showCharacter();
 
-    if (success) setStatus("Correct" + (gaveUp ? "" : "!"), "good");
+    if (success) setStatus("Correct!", "good");
     else if (gaveUp) setStatus("Answer shown.", "bad");
-    else setStatus("Not quite — here's the correct form.", "bad");
+    else setStatus("Needed a hint — counts as a miss.", "bad");
 
-    if (success && !t.scaffold) {
-      setPrompt("Nice. Moving on…");
-      advanceTimer = setTimeout(function () { advance(); }, AUTO_ADVANCE_MS);
-    } else {
+    if (isReviewFail) {
+      // Hold here; the review must not auto-progress past a failed character (B2.2).
       setPrompt("Tap the character to continue.");
       armTap();
+    } else {
+      // Cancelable auto-advance (B5) — used for correct answers, learn steps,
+      // and the scaffolding side-loop (which pauses 1s then progresses, B2.4).
+      startAutoAdvance();
     }
+  }
+
+  var tapArmTime = 0;
+  // Ignore clicks that land within 300ms of arming — that's the completing
+  // stroke's own mouseup firing a click, not a deliberate tap by the user.
+  function freshTap() { return Date.now() - tapArmTime >= 300; }
+
+  function startAutoAdvance() {
+    setPrompt("Moving on… (tap to pause)");
+    advanceTimer = setTimeout(function () { advance(); }, AUTO_ADVANCE_MS);
+    disarmTap();
+    tapArmTime = Date.now();
+    // Tapping during the window cancels auto-advance and holds for an explicit tap (B5).
+    tapHandler = function () {
+      if (!freshTap()) return;
+      if (advanceTimer) {
+        clearTimeout(advanceTimer); advanceTimer = null;
+        setPrompt("Paused — tap the character to continue.");
+        armTap();
+      }
+    };
+    els.target.addEventListener("click", tapHandler);
   }
 
   function armTap() {
     disarmTap();
-    tapHandler = function () { advance(); };
+    tapArmTime = Date.now();
+    tapHandler = function () { if (freshTap()) advance(); };
     els.target.addEventListener("click", tapHandler);
   }
   function disarmTap() {
@@ -283,7 +328,7 @@ window.DrawScreen = (function () {
     advancing = true;
     disarmTap();
     var t = task; task = null;
-    t.onDone({ completed: done, success: !!t._success, mistakes: t._mistakes || 0, gaveUp: !!t._gaveUp, skipped: false });
+    t.onDone({ completed: done, success: !!t._success, hintShown: !!t._hintShown, mistakes: t._mistakes || 0, gaveUp: !!t._gaveUp, skipped: false });
   }
 
   // ===== buttons =====
@@ -307,7 +352,7 @@ window.DrawScreen = (function () {
   // task = { char, level, scaffold, modeLabel, stepLabel, progressLabel, onDone }
   function run(t) {
     task = t;
-    done = false; advancing = false; task.vocabRevealed = false;
+    done = false; advancing = false; hintShown = false; task.vocabRevealed = false;
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
     disarmTap();
     els.modeLabel.textContent = t.modeLabel || "";

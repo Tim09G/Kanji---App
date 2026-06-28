@@ -25,7 +25,7 @@
  */
 window.KANJI_META = [
   { char: "一", meaning: "one", on: ["イチ", "イツ"], kun: ["ひと", "ひと.つ"], grade: 1, jlpt: 5, freq: 2, strokeCount: 1,
-    radical: { char: "一", name: "one" }, similar: ["二", "三"], vocab: [
+    radical: { char: "Ground", name: "Ground" }, similar: ["二", "三"], vocab: [
     { jp: "一つ", r: [{ t: "ひと", b: true }, { t: "つ" }], en: "one (thing)", reading: "ひと" },
     { jp: "一人", r: [{ t: "ひと", b: true }, { t: "り" }], en: "one person; alone", reading: "ひと" },
     { jp: "一月", r: [{ t: "いち", b: true }, { t: "がつ" }], en: "January", reading: "いち" },
@@ -36,7 +36,7 @@ window.KANJI_META = [
     { jp: "一生", r: [{ t: "いっ", b: true }, { t: "しょう" }], en: "a lifetime", reading: "いち" },
   ]},
   { char: "二", meaning: "two", on: ["ニ", "ジ"], kun: ["ふた", "ふた.つ"], grade: 1, jlpt: 5, freq: 9, strokeCount: 2,
-    radical: { char: "二", name: "two" }, similar: ["一", "三"], vocab: [
+    radical: { char: "Two", name: "Two" }, similar: ["一", "三"], vocab: [
     { jp: "二つ", r: [{ t: "ふた", b: true }, { t: "つ" }], en: "two (things)", reading: "ふた" },
     { jp: "二人", r: [{ t: "ふた", b: true }, { t: "り" }], en: "two people", reading: "ふた" },
     { jp: "二月", r: [{ t: "に", b: true }, { t: "がつ" }], en: "February", reading: "に" },
@@ -46,7 +46,7 @@ window.KANJI_META = [
     { jp: "十二", r: [{ t: "じゅう" }, { t: "に", b: true }], en: "twelve", reading: "に" },
   ]},
   { char: "三", meaning: "three", on: ["サン", "ゾウ"], kun: ["み", "み.つ", "みっ.つ"], grade: 1, jlpt: 5, freq: 14, strokeCount: 3,
-    radical: { char: "一", name: "one" }, similar: ["一", "二", "川"], vocab: [
+    radical: { char: "Ground", name: "Ground" }, similar: ["一", "二", "川"], vocab: [
     { jp: "三つ", r: [{ t: "みっ", b: true }, { t: "つ" }], en: "three (things)", reading: "み" },
     { jp: "三日", r: [{ t: "みっ", b: true }, { t: "か" }], en: "the 3rd; three days", reading: "み" },
     { jp: "三月", r: [{ t: "さん", b: true }, { t: "がつ" }], en: "March", reading: "さん" },
@@ -56,7 +56,7 @@ window.KANJI_META = [
     { jp: "三年", r: [{ t: "さん", b: true }, { t: "ねん" }], en: "three years", reading: "さん" },
   ]},
   { char: "人", meaning: "person", on: ["ジン", "ニン"], kun: ["ひと"], grade: 1, jlpt: 5, freq: 5, strokeCount: 2,
-    radical: { char: "人", name: "person" }, similar: [], vocab: [
+    radical: { char: "Person", name: "Person" }, similar: [], vocab: [
     { jp: "人気", r: [{ t: "にん", b: true }, { t: "き" }], en: "popularity", reading: "にん" },
     { jp: "人間", r: [{ t: "にん", b: true }, { t: "げん" }], en: "human being", reading: "にん" },
     { jp: "人形", r: [{ t: "にん", b: true }, { t: "ぎょう" }], en: "doll", reading: "にん" },
@@ -67,7 +67,7 @@ window.KANJI_META = [
     { jp: "本人", r: [{ t: "ほん" }, { t: "にん", b: true }], en: "the person in question", reading: "にん" },
   ]},
   { char: "日", meaning: "day, sun", on: ["ニチ", "ジツ"], kun: ["ひ", "び", "か"], grade: 1, jlpt: 5, freq: 1, strokeCount: 4,
-    radical: { char: "日", name: "sun" }, similar: ["月"], vocab: [
+    radical: { char: "Sun", name: "Sun" }, similar: ["月"], vocab: [
     { jp: "日本", r: [{ t: "に", b: true }, { t: "ほん" }], en: "Japan", reading: "にち" },
     { jp: "毎日", r: [{ t: "まい" }, { t: "にち", b: true }], en: "every day", reading: "にち" },
     { jp: "日曜日", r: [{ t: "にち", b: true }, { t: "ようび" }], en: "Sunday", reading: "にち" },
@@ -78,7 +78,7 @@ window.KANJI_META = [
     { jp: "三日", r: [{ t: "みっ" }, { t: "か", b: true }], en: "the 3rd; three days", reading: "か" },
   ]},
   { char: "月", meaning: "moon, month", on: ["ゲツ", "ガツ"], kun: ["つき"], grade: 1, jlpt: 5, freq: 23, strokeCount: 4,
-    radical: { char: "月", name: "moon" }, similar: ["日"], vocab: [
+    radical: { char: "Moon", name: "Moon" }, similar: ["日"], vocab: [
     { jp: "月曜日", r: [{ t: "げつ", b: true }, { t: "ようび" }], en: "Monday", reading: "げつ" },
     { jp: "今月", r: [{ t: "こん" }, { t: "げつ", b: true }], en: "this month", reading: "げつ" },
     { jp: "来月", r: [{ t: "らい" }, { t: "げつ", b: true }], en: "next month", reading: "げつ" },
@@ -88,7 +88,7 @@ window.KANJI_META = [
     { jp: "毎月", r: [{ t: "まい" }, { t: "つき", b: true }], en: "every month", reading: "つき" },
   ]},
   { char: "火", meaning: "fire", on: ["カ"], kun: ["ひ", "ほ"], grade: 1, jlpt: 5, freq: 574, strokeCount: 4,
-    radical: { char: "火", name: "fire" }, similar: [], vocab: [
+    radical: { char: "Fire", name: "Fire" }, similar: [], vocab: [
     { jp: "火曜日", r: [{ t: "か", b: true }, { t: "ようび" }], en: "Tuesday", reading: "か" },
     { jp: "火山", r: [{ t: "か", b: true }, { t: "ざん" }], en: "volcano", reading: "か" },
     { jp: "火事", r: [{ t: "か", b: true }, { t: "じ" }], en: "fire (accident)", reading: "か" },
@@ -97,7 +97,7 @@ window.KANJI_META = [
     { jp: "火", r: [{ t: "ひ", b: true }], en: "fire", reading: "ひ" },
   ]},
   { char: "水", meaning: "water", on: ["スイ"], kun: ["みず"], grade: 1, jlpt: 5, freq: 223, strokeCount: 4,
-    radical: { char: "水", name: "water" }, similar: ["木"], vocab: [
+    radical: { char: "Water", name: "Water" }, similar: ["木"], vocab: [
     { jp: "水曜日", r: [{ t: "すい", b: true }, { t: "ようび" }], en: "Wednesday", reading: "すい" },
     { jp: "水道", r: [{ t: "すい", b: true }, { t: "どう" }], en: "water supply", reading: "すい" },
     { jp: "水泳", r: [{ t: "すい", b: true }, { t: "えい" }], en: "swimming", reading: "すい" },
@@ -107,7 +107,7 @@ window.KANJI_META = [
     { jp: "水着", r: [{ t: "みず", b: true }, { t: "ぎ" }], en: "swimsuit", reading: "みず" },
   ]},
   { char: "木", meaning: "tree, wood", on: ["ボク", "モク"], kun: ["き", "こ"], grade: 1, jlpt: 5, freq: 317, strokeCount: 4,
-    radical: { char: "木", name: "tree" }, similar: ["水"], vocab: [
+    radical: { char: "Tree", name: "Tree" }, similar: ["水"], vocab: [
     { jp: "木曜日", r: [{ t: "もく", b: true }, { t: "ようび" }], en: "Thursday", reading: "もく" },
     { jp: "木材", r: [{ t: "もく", b: true }, { t: "ざい" }], en: "lumber", reading: "もく" },
     { jp: "木曜", r: [{ t: "もく", b: true }, { t: "よう" }], en: "Thursday (short)", reading: "もく" },
@@ -117,7 +117,7 @@ window.KANJI_META = [
     { jp: "並木", r: [{ t: "なみ" }, { t: "き", b: true }], en: "row of trees", reading: "き" },
   ]},
   { char: "金", meaning: "gold, money", on: ["キン", "コン"], kun: ["かね", "かな"], grade: 1, jlpt: 5, freq: 53, strokeCount: 8,
-    radical: { char: "金", name: "gold" }, similar: [], vocab: [
+    radical: { char: "Gold", name: "Gold" }, similar: [], vocab: [
     { jp: "金曜日", r: [{ t: "きん", b: true }, { t: "ようび" }], en: "Friday", reading: "きん" },
     { jp: "金", r: [{ t: "きん", b: true }], en: "gold", reading: "きん" },
     { jp: "現金", r: [{ t: "げん" }, { t: "きん", b: true }], en: "cash", reading: "きん" },
@@ -128,7 +128,7 @@ window.KANJI_META = [
     { jp: "金持ち", r: [{ t: "かね", b: true }, { t: "もち" }], en: "rich person", reading: "かね" },
   ]},
   { char: "土", meaning: "earth, soil", on: ["ド", "ト"], kun: ["つち"], grade: 1, jlpt: 5, freq: 307, strokeCount: 3,
-    radical: { char: "土", name: "earth" }, similar: [], vocab: [
+    radical: { char: "Dirt", name: "Dirt" }, similar: [], vocab: [
     { jp: "土曜日", r: [{ t: "ど", b: true }, { t: "ようび" }], en: "Saturday", reading: "ど" },
     { jp: "土曜", r: [{ t: "ど", b: true }, { t: "よう" }], en: "Saturday (short)", reading: "ど" },
     { jp: "土木", r: [{ t: "ど", b: true }, { t: "ぼく" }], en: "civil engineering", reading: "ど" },
@@ -137,7 +137,7 @@ window.KANJI_META = [
     { jp: "土", r: [{ t: "つち", b: true }], en: "soil; earth", reading: "つち" },
   ]},
   { char: "山", meaning: "mountain", on: ["サン", "セン"], kun: ["やま"], grade: 1, jlpt: 5, freq: 131, strokeCount: 3,
-    radical: { char: "山", name: "mountain" }, similar: ["川"], vocab: [
+    radical: { char: "Mountain", name: "Mountain" }, similar: ["川"], vocab: [
     { jp: "山", r: [{ t: "やま", b: true }], en: "mountain", reading: "やま" },
     { jp: "山道", r: [{ t: "やま", b: true }, { t: "みち" }], en: "mountain path", reading: "やま" },
     { jp: "火山", r: [{ t: "か" }, { t: "ざん", b: true }], en: "volcano", reading: "さん" },
@@ -146,7 +146,7 @@ window.KANJI_META = [
     { jp: "山林", r: [{ t: "さん", b: true }, { t: "りん" }], en: "mountains and forests", reading: "さん" },
   ]},
   { char: "川", meaning: "river", on: ["セン"], kun: ["かわ"], grade: 1, jlpt: 5, freq: 181, strokeCount: 3,
-    radical: { char: "川", name: "river" }, similar: ["三", "山"], vocab: [
+    radical: { char: "River", name: "River" }, similar: ["三", "山"], vocab: [
     { jp: "川", r: [{ t: "かわ", b: true }], en: "river", reading: "かわ" },
     { jp: "川口", r: [{ t: "かわ", b: true }, { t: "ぐち" }], en: "river mouth; (surname)", reading: "かわ" },
     { jp: "小川", r: [{ t: "お" }, { t: "がわ", b: true }], en: "stream", reading: "かわ" },
@@ -154,7 +154,7 @@ window.KANJI_META = [
     { jp: "河川", r: [{ t: "か" }, { t: "せん", b: true }], en: "rivers (formal)", reading: "せん" },
   ]},
   { char: "口", meaning: "mouth", on: ["コウ", "ク"], kun: ["くち"], grade: 1, jlpt: 4, freq: 284, strokeCount: 3,
-    radical: { char: "口", name: "mouth" }, similar: [], vocab: [
+    radical: { char: "Mouth", name: "Mouth" }, similar: [], vocab: [
     { jp: "口", r: [{ t: "くち", b: true }], en: "mouth", reading: "くち" },
     { jp: "出口", r: [{ t: "で" }, { t: "ぐち", b: true }], en: "exit", reading: "くち" },
     { jp: "入口", r: [{ t: "いり" }, { t: "ぐち", b: true }], en: "entrance", reading: "くち" },

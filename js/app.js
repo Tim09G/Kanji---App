@@ -1,18 +1,21 @@
 /*
  * app.js — screen router + modes (Learn / Review / Browse / Settings).
  *
- * Learn and Review share ONE list view (#screen-list) and ONE session builder so
- * that mixing new + due characters behaves consistently. A session is a queue of
- * tasks (character + reveal level); the draw screen plays them one at a time and
- * the queue can grow mid-session (failure side-loops).
+ * Learn and Review share one kanji list (#screen-list) and one dynamic session
+ * engine. The engine processes a FIFO queue of tasks (character + reveal level)
+ * that can grow mid-session:
+ *   - Learn steps that fail fall back a step; that pass advance (B4).
+ *   - Review failures spawn a step-3 scaffolding side-loop and, on success, a
+ *     final end-of-session retry; repeated side-loop failures retry after a few
+ *     more characters (B2/B3).
  */
 (function () {
   "use strict";
 
   var META = window.KANJI_META || [];
   var $ = function (id) { return document.getElementById(id); };
-  var allChars = function () { return META.map(function (m) { return m.char; }); };
-  var metaOf = function (c) { return META.filter(function (m) { return m.char === c; })[0]; };
+  var allChars = function () { return (window.KANJI_META || []).map(function (m) { return m.char; }); };
+  var metaOf = function (c) { return (window.KANJI_META || []).filter(function (m) { return m.char === c; })[0]; };
 
   var STEP = {
     1: { level: "guided", name: "Guided" },
@@ -21,21 +24,15 @@
     4: { level: "blind", name: "Free recall" },
   };
 
-  // ---- screen router ----
   var screens = {};
-  var listOpenedFrom = "screen-home";   // where the shared list returns to
-  var activeSession = null;             // current running session (for abort)
+  var listOpenedFrom = "screen-home";
+  var activeSession = null;
   var activeReturnScreen = "screen-home";
 
-  function registerScreens() {
-    Array.prototype.forEach.call(document.querySelectorAll(".screen"), function (s) { screens[s.id] = s; });
-  }
-  function show(id) {
-    Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("active", k === id); });
-    window.scrollTo(0, 0);
-  }
+  function registerScreens() { Array.prototype.forEach.call(document.querySelectorAll(".screen"), function (s) { screens[s.id] = s; }); }
+  function show(id) { Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("active", k === id); }); window.scrollTo(0, 0); }
+  function goHome() { renderHome(); show("screen-home"); }
 
-  // ---- per-character display status ----
   function statusInfo(char) {
     var p = Store.getProgress(char);
     if (p.status === "new") return { key: "new", label: "New" };
@@ -43,29 +40,21 @@
     return Scheduler.isDue(char) ? { key: "due", label: "Due" } : { key: "learned", label: "Learned" };
   }
 
-  // ===================================================================
-  // HOME
-  // ===================================================================
+  // ================= HOME =================
   function renderHome() {
-    var c = Store.counts();
-    $("home-counts").textContent = c.new + " new · " + c.learning + " learning · " + c.review + " in review";
+    // D3: show "total learned" and "due for review". (TODO: mastery-level breakdown later.)
+    var learned = Store.reviewPool().length;
     var due = Scheduler.dueChars();
+    $("home-counts").textContent = learned + " learned · " + due.length + " due for review";
     var pill = $("home-due");
-    if (due.length) {
-      pill.hidden = false;
-      pill.textContent = "🔔 " + due.length + " due for review — start now";
-    } else {
-      pill.hidden = true;
-    }
+    if (due.length) { pill.hidden = false; pill.textContent = "🔔 " + due.length + " due for review — start now"; }
+    else { pill.hidden = true; }
   }
 
-  // ===================================================================
-  // BROWSE
-  // ===================================================================
+  // ================= BROWSE =================
   var browseWriter = null, browseChar = null;
   function buildBrowsePicker() {
-    var picker = $("browse-picker");
-    picker.innerHTML = "";
+    var picker = $("browse-picker"); picker.innerHTML = "";
     META.forEach(function (m) {
       var chip = document.createElement("button");
       chip.type = "button"; chip.className = "kanji-chip"; chip.textContent = m.char; chip.dataset.char = m.char;
@@ -92,32 +81,28 @@
   }
   function browseRandom() { var pick; do { pick = META[Math.floor(Math.random() * META.length)].char; } while (META.length > 1 && pick === browseChar); browseSelect(pick); }
 
-  // ===================================================================
-  // SHARED LIST (Review + Learn "choose your own")
-  // ===================================================================
+  // ================= SHARED LIST =================
   var listSelected = {};
+  var listVisible = [];   // characters currently shown (after filters), in sort order
+
+  function currentSort() { return $("list-sort").value || Filters.DEFAULT_SORT; }
 
   function buildListGrid() {
-    var grid = $("list-grid");
-    grid.innerHTML = "";
-    META.forEach(function (m) {
-      var info = statusInfo(m.char);
+    var grid = $("list-grid"); grid.innerHTML = "";
+    listVisible.forEach(function (ch) {
+      var info = statusInfo(ch);
       var chip = document.createElement("button");
-      chip.type = "button"; chip.className = "select-chip"; chip.dataset.char = m.char;
-      var glyph = document.createElement("span"); glyph.className = "chip-glyph"; glyph.textContent = m.char;
+      chip.type = "button"; chip.className = "select-chip"; chip.dataset.char = ch;
+      if (listSelected[ch]) chip.classList.add("selected");
+      var glyph = document.createElement("span"); glyph.className = "chip-glyph"; glyph.textContent = ch;
       var tag = document.createElement("span"); tag.className = "chip-tag chip-" + info.key; tag.textContent = info.label;
       chip.appendChild(glyph); chip.appendChild(tag);
       chip.addEventListener("click", function () {
-        listSelected[m.char] = !listSelected[m.char];
-        chip.classList.toggle("selected", listSelected[m.char]);
+        listSelected[ch] = !listSelected[ch];
+        chip.classList.toggle("selected", listSelected[ch]);
         updateListStart();
       });
       grid.appendChild(chip);
-    });
-  }
-  function refreshListGrid() {
-    Array.prototype.forEach.call($("list-grid").children, function (chip) {
-      chip.classList.toggle("selected", !!listSelected[chip.dataset.char]);
     });
     updateListStart();
   }
@@ -129,135 +114,212 @@
   }
 
   function buildFilterRows() {
-    var wrap = $("filter-rows");
-    wrap.innerHTML = "";
+    var wrap = $("filter-rows"); wrap.innerHTML = "";
     Object.keys(Filters.DEFS).forEach(function (id) {
       var def = Filters.DEFS[id];
-      var row = document.createElement("div");
-      row.className = "filter-row";
+      var row = document.createElement("div"); row.className = "filter-row";
       var lab = document.createElement("label"); lab.textContent = def.label;
       var sel = document.createElement("select"); sel.className = "select-input"; sel.dataset.filter = id;
       var any = document.createElement("option"); any.value = ""; any.textContent = "— any —"; sel.appendChild(any);
       def.options().forEach(function (o) { var opt = document.createElement("option"); opt.value = o.value; opt.textContent = o.label; sel.appendChild(opt); });
-      row.appendChild(lab); row.appendChild(sel);
-      wrap.appendChild(row);
+      row.appendChild(lab); row.appendChild(sel); wrap.appendChild(row);
     });
   }
   function activeFilters() {
     return Array.prototype.map.call($("filter-rows").querySelectorAll("select"), function (sel) { return { id: sel.dataset.filter, value: sel.value }; })
       .filter(function (f) { return f.value !== ""; });
   }
+  // C3: filters narrow the visible list (not just highlight).
   function applyFilters() {
     var active = activeFilters();
-    var matched = active.length ? Filters.apply(active) : [];
+    var matched = active.length ? Filters.apply(active) : allChars();
+    listVisible = Filters.sortChars(matched, currentSort());
     listSelected = {};
-    matched.forEach(function (c) { listSelected[c] = true; });
-    refreshListGrid();
-    $("filter-match").textContent = active.length ? (matched.length + " match") : "no filters set";
+    if (active.length) matched.forEach(function (c) { listSelected[c] = true; }); // pre-select the narrowed set
+    buildListGrid();
+    $("filter-match").textContent = active.length ? (matched.length + " shown") : "";
   }
   function resetFilters() {
     Array.prototype.forEach.call($("filter-rows").querySelectorAll("select"), function (s) { s.value = ""; });
+    listVisible = Filters.sortChars(allChars(), currentSort());
+    listSelected = {};
+    buildListGrid();
     $("filter-match").textContent = "";
   }
+  // C4: changing the order actually re-sorts the visible list.
+  function applySort() { listVisible = Filters.sortChars(listVisible, currentSort()); buildListGrid(); }
+
   function buildSortOptions() {
     var sel = $("list-sort"); sel.innerHTML = "";
     Object.keys(Filters.SORTS).forEach(function (id) { var o = document.createElement("option"); o.value = id; o.textContent = Filters.SORTS[id].label; sel.appendChild(o); });
+    sel.value = Filters.DEFAULT_SORT;
   }
   function renderListDue() {
     var due = Scheduler.dueChars();
     var b = $("list-due-banner");
-    if (due.length) {
-      b.hidden = false;
-      b.textContent = "🔔 " + due.length + " due for review: " + due.join(" ") + "  → tap to review them";
-    } else {
-      b.hidden = false;
-      b.textContent = "No characters are due for review right now.";
-      b.disabled = true;
-      return;
-    }
-    b.disabled = false;
+    if (due.length) { b.hidden = false; b.disabled = false; b.textContent = "🔔 " + due.length + " due for review — tap to review them"; }
+    else { b.hidden = false; b.disabled = true; b.textContent = "No characters are due for review right now."; }
   }
 
   function openList(title, openedFrom) {
     listOpenedFrom = openedFrom;
     $("list-title").textContent = title;
-    buildListGrid(); buildFilterRows(); buildSortOptions(); resetFilters();
-    listSelected = {}; $("list-random").checked = false;
-    renderListDue(); refreshListGrid();
+    buildFilterRows(); buildSortOptions();
+    Array.prototype.forEach.call($("filter-rows").querySelectorAll("select"), function (s) { s.value = ""; });
+    $("filter-match").textContent = "";
+    listSelected = {};
+    listVisible = Filters.sortChars(allChars(), Filters.DEFAULT_SORT);
+    renderListDue(); buildListGrid();
     show("screen-list");
+  }
+
+  // ================= SESSION ENGINE =================
+  function makeLearn(char, step) { return { char: char, kind: "learn", step: step, level: STEP[step].level }; }
+  function makeSideloop(char, attempts) { return { char: char, kind: "learn", step: 3, level: STEP[3].level, sideloop: true, recoveryAttempts: attempts }; }
+  function makeReview(char, isExtra) { return { char: char, kind: "review", level: "blind", isExtra: !!isExtra }; }
+
+  function buildSessionFromChars(chars, sortId) {
+    var learnItems = [], reviewChars = [];
+    chars.forEach(function (c) {
+      var p = Store.getProgress(c);
+      if (p.status === "review") reviewChars.push(c);
+      else { var start = (p.status === "learning" ? (p.learnStep || 0) : 0) + 1; learnItems.push({ char: c, step: Math.min(4, start) }); }
+    });
+    reviewChars = Filters.sortChars(reviewChars, sortId);
+    return { learnItems: learnItems, reviewChars: reviewChars };
   }
 
   function startListSession() {
     var chars = selectedListChars();
     if (!chars.length) return;
-    var tasks = buildUnifiedTasks(chars, $("list-sort").value, $("list-random").checked);
-    runUnifiedSession(tasks, "screen-list");
+    var built = buildSessionFromChars(chars, currentSort());
+    runSession({ learnItems: built.learnItems, reviewChars: built.reviewChars, modeLabel: "Review", returnScreen: "screen-list" });
   }
-
-  // ===================================================================
-  // Session builders
-  // ===================================================================
-  function reviewTask(c) { return { char: c, level: "blind", scaffold: false, kind: "review" }; }
-  function scaffoldTask(c, s) { return { char: c, level: STEP[s].level, scaffold: true, kind: "scaffold", step: s, stepName: STEP[s].name }; }
-
-  // Mixed Learn+Review: new/learning chars get (remaining) scaffold steps; review
-  // chars get a review task; interleaved by round when scaffolding is present.
-  function buildUnifiedTasks(chars, sortId, randomize) {
-    var scaffoldChars = [], reviewChars = [];
-    chars.forEach(function (c) { (Store.getProgress(c).status === "review" ? reviewChars : scaffoldChars).push(c); });
-    var orderedReview = randomize ? Filters.shuffle(reviewChars) : Filters.sortChars(reviewChars, sortId);
-
-    if (!scaffoldChars.length) {
-      return orderedReview.map(reviewTask); // pure review honours sort/randomize
-    }
-
-    var rounds = 4;
-    var scaffoldTasks = [], reviewTasks = [];
-    scaffoldChars.forEach(function (c) {
-      var p = Store.getProgress(c);
-      var start = (p.status === "learning" ? (p.learnStep || 0) : 0) + 1;
-      for (var s = start; s <= 4; s++) { var t = scaffoldTask(c, s); t.round = s - 1; scaffoldTasks.push(t); }
-    });
-    orderedReview.forEach(function (c) { var t = reviewTask(c); t.round = Math.floor(Math.random() * rounds); reviewTasks.push(t); });
-    var byRound = []; for (var r = 0; r < rounds; r++) byRound.push([]);
-    scaffoldTasks.concat(reviewTasks).forEach(function (t) { byRound[t.round].push(t); });
-    var tasks = []; byRound.forEach(function (g) { tasks = tasks.concat(Filters.shuffle(g)); });
-    return tasks;
+  function startSeq() {
+    var n = parseInt($("seq-slider").value, 10) || 1;
+    var chars = Store.nextNewChars(n);
+    if (!chars.length) return;
+    runSession({ learnItems: chars.map(function (c) { return { char: c, step: 1 }; }), reviewChars: [], modeLabel: "Learn", returnScreen: "screen-learn-seq" });
   }
-
-  function labelForUnified(t) {
-    if (t.sideloop) return "Retry · free recall";
-    if (t.kind === "review") return t.isExtra ? "Final retry" : "Review";
-    return "Step " + t.step + "/4 · " + t.stepName;
-  }
-  function unifiedTaskDone(t, r) {
-    if (t.kind === "review") { Scheduler.recordReview(t.char, r.success, r.mistakes); return; }
-    if (t.sideloop) return; // the step-4 redraw is just practice; don't double-schedule
-    if (t.step < 4) { if (!r.skipped) Store.recordLearnStep(t.char, t.step); }
-    else if (r.completed && !r.gaveUp) { Store.graduate(t.char); Scheduler.onGraduate(t.char); }
-  }
-
-  function runUnifiedSession(tasks, returnScreen) {
-    runSession({
-      tasks: tasks, modeLabel: "Review", returnScreen: returnScreen,
-      labelFor: labelForUnified, onTaskDone: unifiedTaskDone, failureHandling: true,
-      onFinish: function (stats) {
-        var grad = Store.reviewPool();
-        showDone("Session complete", stats, "screen-home", grad.length ? ("In your review pool: " + grad.join(" ")) : "");
-      },
-    });
-  }
-
-  // Due notification → review exactly the due characters.
   function startDueReview(returnScreen) {
     var due = Scheduler.dueChars();
     if (!due.length) return;
-    runUnifiedSession(due.map(reviewTask), returnScreen);
+    runSession({ learnItems: [], reviewChars: Filters.sortChars(due, Filters.DEFAULT_SORT), modeLabel: "Review", returnScreen: returnScreen });
   }
 
-  // ===================================================================
-  // LEARN — entry + sequential slider
-  // ===================================================================
+  function runSession(cfg) {
+    // initial interleave of learn-start tasks and review tasks
+    var learnTasks = cfg.learnItems.map(function (it) { return makeLearn(it.char, it.step); });
+    var reviewTasks = cfg.reviewChars.map(function (c) { return makeReview(c, false); });
+    var queue = [];
+    var li = 0, ri = 0;
+    while (li < learnTasks.length || ri < reviewTasks.length) {
+      if (li < learnTasks.length) queue.push(learnTasks[li++]);
+      if (ri < reviewTasks.length) queue.push(reviewTasks[ri++]);
+    }
+
+    var reviewedSet = {}; cfg.reviewChars.forEach(function (c) { reviewedSet[c] = true; });
+    var failedSet = {};
+    var graduated = {};
+    var completed = 0;
+
+    activeSession = { aborted: false };
+    activeReturnScreen = cfg.returnScreen || "screen-home";
+
+    function labelFor(t) {
+      if (t.kind === "review") return t.isExtra ? "Final retry" : "Review";
+      if (t.sideloop) return "Retry · " + STEP[3].name;
+      return "Step " + t.step + "/4 · " + STEP[t.step].name;
+    }
+    function progressText() { return (completed + 1) + " / " + (completed + queue.length + 1); }
+
+    function present() {
+      if (!activeSession || activeSession.aborted) return;
+      if (!queue.length) {
+        activeSession = null;
+        finishSession(cfg, { reviewed: Object.keys(reviewedSet), failed: Object.keys(failedSet), graduated: Object.keys(graduated) });
+        return;
+      }
+      var t = queue.shift();
+      show("screen-draw");
+      DrawScreen.run({
+        char: t.char, level: t.level, kind: t.kind, scaffold: (t.kind === "learn"),
+        modeLabel: cfg.modeLabel, stepLabel: labelFor(t), progressLabel: progressText(),
+        onDone: function (r) {
+          if (!activeSession || activeSession.aborted) return;
+          completed++;
+          if (t.kind === "learn") {
+            if (t.sideloop) handleSideloop(t, r); else handleLearn(t, r);
+          } else handleReview(t, r);
+          present();
+        },
+      });
+    }
+
+    function handleLearn(t, r) {
+      if (r.skipped) return; // user skipped this step; don't progress or re-queue
+      if (r.success) {
+        if (t.step < 4) { Store.recordLearnStep(t.char, t.step); queue.push(makeLearn(t.char, t.step + 1)); }
+        else { Store.recordLearnStep(t.char, 4); Store.graduate(t.char); Scheduler.onGraduate(t.char); graduated[t.char] = true; }
+      } else {
+        // B4: fall back one step (min 1); only progress forward on a pass.
+        queue.push(makeLearn(t.char, Math.max(1, t.step - 1)));
+      }
+    }
+
+    function handleReview(t, r) {
+      Scheduler.recordReview(t.char, r.success, r.mistakes);
+      if (r.success) return;
+      if (reviewedSet[t.char]) failedSet[t.char] = true; // A2: distinct kanji that failed
+      if (t.isExtra) return;                              // final attempt failed -> terminal
+      queue.unshift(makeSideloop(t.char, 1));             // B2.3 (A1: step 3), immediate
+    }
+
+    function handleSideloop(t, r) {
+      if (r.success) {
+        queue.push(makeReview(t.char, true)); // B2.5/B3: queue final end-of-session attempt
+      } else if (t.recoveryAttempts >= 5) {
+        queue.push(makeReview(t.char, true)); // safety cap -> just queue the final attempt
+      } else {
+        var pos = Math.min(queue.length, 3); // B3: retry after a few more characters
+        queue.splice(pos, 0, makeSideloop(t.char, t.recoveryAttempts + 1));
+      }
+    }
+
+    present();
+  }
+
+  function finishSession(cfg, summary) {
+    if (summary.reviewed.length) {
+      var correct = summary.reviewed.length - summary.failed.length;
+      var extra = summary.graduated.length ? ("Newly learned: " + summary.graduated.join(" ")) : "";
+      showDone("Review complete", correct + " / " + summary.reviewed.length + " kanji correct", extra, cfg.returnScreen);
+    } else {
+      var grad = Store.reviewPool();
+      showDone("Learn session complete",
+        summary.graduated.length + " character" + (summary.graduated.length === 1 ? "" : "s") + " learned",
+        grad.length ? ("In your review pool: " + grad.join(" ")) : "", cfg.returnScreen);
+    }
+  }
+
+  function exitSession() {
+    if (activeSession) activeSession.aborted = true;
+    DrawScreen.stop();
+    activeSession = null;
+    renderHome();
+    show(activeReturnScreen || "screen-home");
+  }
+
+  function showDone(title, summaryText, extraNote, backScreenId) {
+    $("done-title").textContent = title;
+    $("done-summary").textContent = summaryText;
+    $("done-extra").textContent = extraNote || "";
+    $("done-back").onclick = function () { renderHome(); show(backScreenId || "screen-home"); };
+    renderHome();
+    show("screen-done");
+  }
+
+  // ================= LEARN entry + sequential =================
   function openSeq() {
     var avail = Store.nextNewChars(999);
     $("seq-available").textContent = avail.length;
@@ -275,85 +337,8 @@
     var avail = Store.nextNewChars(999);
     $("seq-preview").textContent = avail.length ? ("Next up: " + Store.nextNewChars(n).join(" ")) : "Nothing new to learn right now.";
   }
-  function startSeq() {
-    var n = parseInt($("seq-slider").value, 10) || 1;
-    var chars = Store.nextNewChars(n);
-    if (!chars.length) return;
-    var tasks = [];
-    [1, 2, 3, 4].forEach(function (s) { chars.forEach(function (c) { tasks.push(scaffoldTask(c, s)); }); });
-    runSession({
-      tasks: tasks, modeLabel: "Learn", returnScreen: "screen-learn-seq",
-      labelFor: function (t) { return "Step " + t.step + "/4 · " + t.stepName; },
-      onTaskDone: unifiedTaskDone, failureHandling: true,
-      onFinish: function (stats) {
-        var grad = Store.reviewPool();
-        showDone("Learn session complete", stats, "screen-home", grad.length ? ("In your review pool: " + grad.join(" ")) : "");
-      },
-    });
-  }
 
-  // ===================================================================
-  // Session runner (dynamic queue + failure side-loops + abort)
-  // ===================================================================
-  function runSession(cfg) {
-    var queue = cfg.tasks.slice();
-    var stats = { total: queue.length, success: 0, completed: 0, skipped: 0 };
-    var idx = 0;
-    activeSession = { aborted: false };
-    activeReturnScreen = cfg.returnScreen || "screen-home";
-
-    function next() {
-      if (!activeSession || activeSession.aborted) return;
-      if (idx >= queue.length) { activeSession = null; cfg.onFinish(stats); return; }
-      var t = queue[idx];
-      show("screen-draw");
-      DrawScreen.run({
-        char: t.char, level: t.level, scaffold: t.scaffold,
-        modeLabel: cfg.modeLabel,
-        stepLabel: cfg.labelFor ? cfg.labelFor(t) : "",
-        progressLabel: (idx + 1) + " / " + queue.length,
-        onDone: function (result) {
-          if (!activeSession || activeSession.aborted) return;
-          if (result.success) stats.success++;
-          if (result.completed) stats.completed++;
-          if (result.skipped) stats.skipped++;
-          if (cfg.onTaskDone) cfg.onTaskDone(t, result);
-
-          // Failure handling: a review attempt with any first-try wrong stroke.
-          if (cfg.failureHandling && t.kind === "review" && !t.noFail &&
-              result.completed && !result.success && !result.skipped) {
-            // 1) immediate step-4 free-recall redraw, right after this character
-            queue.splice(idx + 1, 0, { char: t.char, level: "blind", scaffold: true, kind: "scaffold", step: 4, stepName: "Free recall", sideloop: true, noFail: true });
-            // 2) one more attempt at the very end of the whole session
-            queue.push({ char: t.char, level: "blind", scaffold: false, kind: "review", isExtra: true, noFail: true });
-            stats.total = queue.length;
-          }
-          idx++; next();
-        },
-      });
-    }
-    next();
-  }
-
-  function exitSession() {
-    if (activeSession) activeSession.aborted = true;
-    DrawScreen.stop();
-    activeSession = null;
-    renderHome();
-    show(activeReturnScreen || "screen-home");
-  }
-
-  function showDone(title, stats, backScreenId, extraNote) {
-    $("done-title").textContent = title;
-    $("done-summary").textContent = stats.success + " of " + stats.total + " written cleanly" + (stats.skipped ? " · " + stats.skipped + " skipped" : "");
-    $("done-extra").textContent = extraNote || "";
-    $("done-back").onclick = function () { renderHome(); show(backScreenId || "screen-home"); };
-    show("screen-done");
-  }
-
-  // ===================================================================
-  // wiring
-  // ===================================================================
+  // ================= wiring =================
   function init() {
     if (typeof HanziWriter === "undefined") {
       document.body.insertAdjacentHTML("afterbegin", '<p style="color:#d6453d;text-align:center">HanziWriter failed to load.</p>');
@@ -367,19 +352,13 @@
       reveal: $("draw-reveal"), skip: $("draw-skip"), back: $("draw-back"),
     }, { onBack: exitSession });
 
-    // top-level nav
     $("nav-browse").addEventListener("click", function () { buildBrowsePicker(); browseSelect(META[0].char); show("screen-browse"); });
     $("nav-learn").addEventListener("click", function () { show("screen-learn-entry"); });
     $("nav-review").addEventListener("click", function () { openList("Review", "screen-home"); });
     $("nav-settings").addEventListener("click", function () { show("screen-settings"); });
-
-    // home due pill
     $("home-due").addEventListener("click", function () { startDueReview("screen-home"); });
 
-    // back buttons: data-home / data-back="screen-x" / data-back="auto"
-    Array.prototype.forEach.call(document.querySelectorAll("[data-home]"), function (b) {
-      b.addEventListener("click", function () { renderHome(); show("screen-home"); });
-    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-home]"), function (b) { b.addEventListener("click", goHome); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-back]"), function (b) {
       b.addEventListener("click", function () {
         var target = b.getAttribute("data-back");
@@ -388,29 +367,25 @@
       });
     });
 
-    // settings
     $("reset-progress").addEventListener("click", function () {
       if (!confirm("Reset all learning progress on this device?")) return;
       if (!confirm("Are you sure? This permanently erases your progress and cannot be undone.")) return;
-      Store.resetAll(); renderHome();
-      alert("Progress has been reset.");
+      Store.resetAll(); renderHome(); alert("Progress has been reset.");
     });
 
-    // browse
     $("browse-animate").addEventListener("click", function () { if (browseWriter) browseWriter.animateCharacter(); });
     $("browse-reset").addEventListener("click", function () { if (browseChar) browseSelect(browseChar); });
     $("browse-random").addEventListener("click", browseRandom);
 
-    // learn entry
     $("learn-seq-btn").addEventListener("click", openSeq);
     $("learn-choose-btn").addEventListener("click", function () { openList("Choose to learn", "screen-learn-entry"); });
     $("seq-start").addEventListener("click", startSeq);
 
-    // shared list
     $("filter-apply").addEventListener("click", applyFilters);
-    $("filter-reset").addEventListener("click", function () { resetFilters(); listSelected = {}; refreshListGrid(); });
-    $("list-all").addEventListener("click", function () { allChars().forEach(function (c) { listSelected[c] = true; }); refreshListGrid(); });
-    $("list-clear").addEventListener("click", function () { listSelected = {}; refreshListGrid(); });
+    $("filter-reset").addEventListener("click", resetFilters);
+    $("list-sort").addEventListener("change", applySort);
+    $("list-all").addEventListener("click", function () { listVisible.forEach(function (c) { listSelected[c] = true; }); buildListGrid(); });
+    $("list-clear").addEventListener("click", function () { listSelected = {}; buildListGrid(); });
     $("list-start").addEventListener("click", startListSession);
     $("list-due-banner").addEventListener("click", function () { if (!$("list-due-banner").disabled) startDueReview("screen-list"); });
 
