@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=5" />
+  <link rel="stylesheet" href="css/styles.css?v=6" />
 </head>
 <body>
   <header class="app-header">
@@ -80,6 +80,7 @@
               <dt>Kun (訓)</dt><dd id="browse-kun">—</dd>
               <dt>Strokes</dt><dd id="browse-strokes">—</dd>
               <dt>Frequency</dt><dd id="browse-freq">—</dd>
+              <dt>Radical</dt><dd id="browse-radical">—</dd>
             </dl>
           </div>
         </aside>
@@ -134,9 +135,15 @@
 
       <button id="list-due-banner" class="due-banner due-banner-btn" type="button"></button>
 
-      <!-- Sort is always visible; Random is the default order. -->
+      <!-- Search (D): find a kanji by character, reading or meaning. -->
+      <div class="search-row">
+        <input id="list-search" type="search" placeholder="Search kanji, reading (romaji) or meaning…" />
+        <button id="search-draw" class="btn btn-ghost" type="button" title="Draw to search">✎ Draw</button>
+      </div>
+
+      <!-- Display order (select-screen only); Random not offered here (A). -->
       <div class="order-bar">
-        <label for="list-sort"><strong>Order</strong></label>
+        <label for="list-sort"><strong>Display order</strong></label>
         <select id="list-sort" class="select-input"></select>
       </div>
 
@@ -150,7 +157,7 @@
         </div>
       </details>
 
-      <p class="hint">Tap characters to include them, or use the filters above.</p>
+      <p class="hint">Tap characters to include them, or use search/filters above.</p>
       <div class="select-toolbar">
         <button id="list-all" class="btn btn-ghost" type="button">Select all</button>
         <button id="list-clear" class="btn btn-ghost" type="button">Clear</button>
@@ -158,6 +165,14 @@
         <span id="list-count" class="count">0 selected</span>
       </div>
       <div id="list-grid" class="select-grid status-grid"></div>
+
+      <!-- Review order (A): order characters are presented in during the session.
+           Single-select; Random is the default. Distinct from display order above. -->
+      <fieldset class="review-order">
+        <legend>Review order (during the session)</legend>
+        <div id="review-order-options" class="ro-options"></div>
+      </fieldset>
+
       <div class="screen-actions">
         <button id="list-start" class="btn btn-primary" type="button" disabled>Start →</button>
       </div>
@@ -198,6 +213,7 @@
         <div class="done-emoji">🎉</div>
         <h2 id="done-title">Done</h2>
         <p id="done-summary" class="done-summary"></p>
+        <div id="done-failed" class="done-failed"></div>
         <p id="done-extra" class="done-extra"></p>
         <button id="done-back" class="btn btn-primary" type="button">Continue</button>
       </div>
@@ -213,12 +229,13 @@
   </footer>
 
   <script src="vendor/hanzi-writer.min.js"></script>
-  <script src="data/kanji-meta.js?v=5"></script>
-  <script src="data/kanji-extra.js?v=5"></script>
-  <script src="js/store.js?v=5"></script>
-  <script src="js/scheduler.js?v=5"></script>
-  <script src="js/filters.js?v=5"></script>
-  <script src="js/drawscreen.js?v=5"></script>
-  <script src="js/app.js?v=5"></script>
+  <script src="data/kanji-meta.js?v=6"></script>
+  <script src="data/kanji-extra.js?v=6"></script>
+  <script src="data/kanji-components.js?v=6"></script>
+  <script src="js/store.js?v=6"></script>
+  <script src="js/scheduler.js?v=6"></script>
+  <script src="js/filters.js?v=6"></script>
+  <script src="js/drawscreen.js?v=6"></script>
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>

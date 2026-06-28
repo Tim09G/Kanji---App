@@ -17,6 +17,24 @@
   var allChars = function () { return (window.KANJI_META || []).map(function (m) { return m.char; }); };
   var metaOf = function (c) { return (window.KANJI_META || []).filter(function (m) { return m.char === c; })[0]; };
 
+  // Minimal kana → romaji for typed reading search.
+  var ROMA = { "あ":"a","い":"i","う":"u","え":"e","お":"o","か":"ka","き":"ki","く":"ku","け":"ke","こ":"ko","さ":"sa","し":"shi","す":"su","せ":"se","そ":"so","た":"ta","ち":"chi","つ":"tsu","て":"te","と":"to","な":"na","に":"ni","ぬ":"nu","ね":"ne","の":"no","は":"ha","ひ":"hi","ふ":"fu","へ":"he","ほ":"ho","ま":"ma","み":"mi","む":"mu","め":"me","も":"mo","や":"ya","ゆ":"yu","よ":"yo","ら":"ra","り":"ri","る":"ru","れ":"re","ろ":"ro","わ":"wa","を":"wo","ん":"n","が":"ga","ぎ":"gi","ぐ":"gu","げ":"ge","ご":"go","ざ":"za","じ":"ji","ず":"zu","ぜ":"ze","ぞ":"zo","だ":"da","ぢ":"ji","づ":"zu","で":"de","ど":"do","ば":"ba","び":"bi","ぶ":"bu","べ":"be","ぼ":"bo","ぱ":"pa","ぴ":"pi","ぷ":"pu","ぺ":"pe","ぽ":"po","ゃ":"ya","ゅ":"yu","ょ":"yo","っ":"","ー":"" };
+  function kanaToRomaji(s) {
+    var out = "";
+    for (var i = 0; i < s.length; i++) {
+      var c = s[i];
+      // katakana → hiragana first
+      var code = c.charCodeAt(0);
+      if (code >= 0x30a1 && code <= 0x30f6) c = String.fromCharCode(code - 0x60);
+      var nxt = s[i + 1];
+      if (nxt && (nxt === "ゃ" || nxt === "ゅ" || nxt === "ょ") && ROMA[c] && ROMA[c].length === 2) {
+        out += ROMA[c][0] + "y" + ROMA[nxt][1]; i++; continue;   // きゃ -> kya
+      }
+      out += (c in ROMA) ? ROMA[c] : (/\s/.test(c) ? " " : (/[a-z0-9]/i.test(c) ? c.toLowerCase() : ""));
+    }
+    return out;
+  }
+
   var STEP = {
     1: { level: "guided", name: "Guided" },
     2: { level: "order", name: "Order recall" },
@@ -32,6 +50,13 @@
   function registerScreens() { Array.prototype.forEach.call(document.querySelectorAll(".screen"), function (s) { screens[s.id] = s; }); }
   function show(id) { Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("active", k === id); }); window.scrollTo(0, 0); }
   function goHome() { renderHome(); show("screen-home"); }
+
+  // Radical text (C1): radical character + Japanese name in hiragana, no English.
+  function radicalText(char) {
+    var c = (window.KANJI_COMPONENTS || {})[char]; var r = c && c.radical;
+    if (!r) { var m = metaOf(char); r = m && m.radical; }
+    return r ? (r.char + (r.name ? "（" + r.name + "）" : "")) : "—";
+  }
 
   function statusInfo(char) {
     var p = Store.getProgress(char);
@@ -72,6 +97,7 @@
     $("browse-kun").textContent = meta.kun.join("、");
     $("browse-strokes").textContent = meta.strokeCount;
     $("browse-freq").textContent = "#" + meta.freq;
+    $("browse-radical").textContent = radicalText(char);
     $("browse-target").innerHTML = "";
     browseWriter = HanziWriter.create($("browse-target"), char, {
       width: 300, height: 300, padding: 5, showCharacter: true, showOutline: true,
@@ -149,10 +175,47 @@
   // C4: changing the order actually re-sorts the visible list.
   function applySort() { listVisible = Filters.sortChars(listVisible, currentSort()); buildListGrid(); }
 
+  // Display order (select screen) — Random is NOT offered here (A).
   function buildSortOptions() {
     var sel = $("list-sort"); sel.innerHTML = "";
-    Object.keys(Filters.SORTS).forEach(function (id) { var o = document.createElement("option"); o.value = id; o.textContent = Filters.SORTS[id].label; sel.appendChild(o); });
-    sel.value = Filters.DEFAULT_SORT;
+    Object.keys(Filters.SORTS).filter(function (id) { return id !== "random"; })
+      .forEach(function (id) { var o = document.createElement("option"); o.value = id; o.textContent = Filters.SORTS[id].label; sel.appendChild(o); });
+    sel.value = "study";
+  }
+  // Review order (during the session) — single-select radios incl Random (default).
+  function buildReviewOrder() {
+    var wrap = $("review-order-options"); wrap.innerHTML = "";
+    Object.keys(Filters.SORTS).forEach(function (id) {
+      var lab = document.createElement("label"); lab.className = "ro-opt";
+      var inp = document.createElement("input"); inp.type = "radio"; inp.name = "review-order"; inp.value = id;
+      if (id === Filters.DEFAULT_SORT) inp.checked = true;
+      lab.appendChild(inp); lab.appendChild(document.createTextNode(" " + Filters.SORTS[id].label));
+      wrap.appendChild(lab);
+    });
+  }
+  function reviewOrder() {
+    var r = document.querySelector('input[name="review-order"]:checked');
+    return r ? r.value : Filters.DEFAULT_SORT;
+  }
+
+  // --- search (D) ---
+  function applySearch() {
+    var q = $("list-search").value.trim().toLowerCase();
+    var base = allChars();
+    if (q) {
+      base = base.filter(function (c) {
+        if (c === q) return true;
+        var m = metaOf(c);
+        if (m.meaning && m.meaning.toLowerCase().indexOf(q) >= 0) return true;
+        var kana = (m.on || []).concat(m.kun || []).join(" ");
+        if (kana.toLowerCase().indexOf(q) >= 0) return true;
+        if (kanaToRomaji(kana).indexOf(q) >= 0) return true;
+        return false;
+      });
+    }
+    listVisible = Filters.sortChars(base, currentSort());
+    buildListGrid();
+    $("filter-match").textContent = q ? (base.length + " match") : "";
   }
   function renderListDue() {
     var due = Scheduler.dueChars();
@@ -164,11 +227,12 @@
   function openList(title, openedFrom) {
     listOpenedFrom = openedFrom;
     $("list-title").textContent = title;
-    buildFilterRows(); buildSortOptions();
+    buildFilterRows(); buildSortOptions(); buildReviewOrder();
     Array.prototype.forEach.call($("filter-rows").querySelectorAll("select"), function (s) { s.value = ""; });
     $("filter-match").textContent = "";
+    $("list-search").value = "";
     listSelected = {};
-    listVisible = Filters.sortChars(allChars(), Filters.DEFAULT_SORT);
+    listVisible = Filters.sortChars(allChars(), "study");
     renderListDue(); buildListGrid();
     show("screen-list");
   }
@@ -192,7 +256,7 @@
   function startListSession() {
     var chars = selectedListChars();
     if (!chars.length) return;
-    var built = buildSessionFromChars(chars, currentSort());
+    var built = buildSessionFromChars(chars, reviewOrder());   // session presentation order (A)
     runSession({ learnItems: built.learnItems, reviewChars: built.reviewChars, modeLabel: "Review", returnScreen: "screen-list" });
   }
   function startSeq() {
@@ -201,10 +265,10 @@
     if (!chars.length) return;
     runSession({ learnItems: chars.map(function (c) { return { char: c, step: 1 }; }), reviewChars: [], modeLabel: "Learn", returnScreen: "screen-learn-seq" });
   }
-  function startDueReview(returnScreen) {
+  function startDueReview(returnScreen, order) {
     var due = Scheduler.dueChars();
     if (!due.length) return;
-    runSession({ learnItems: [], reviewChars: Filters.sortChars(due, Filters.DEFAULT_SORT), modeLabel: "Review", returnScreen: returnScreen });
+    runSession({ learnItems: [], reviewChars: Filters.sortChars(due, order || Filters.DEFAULT_SORT), modeLabel: "Review", returnScreen: returnScreen });
   }
 
   function runSession(cfg) {
@@ -293,12 +357,12 @@
     if (summary.reviewed.length) {
       var correct = summary.reviewed.length - summary.failed.length;
       var extra = summary.graduated.length ? ("Newly learned: " + summary.graduated.join(" ")) : "";
-      showDone("Review complete", correct + " / " + summary.reviewed.length + " kanji correct", extra, cfg.returnScreen);
+      showDone("Review complete", correct + " / " + summary.reviewed.length + " kanji correct", extra, cfg.returnScreen, summary.failed);
     } else {
       var grad = Store.reviewPool();
       showDone("Learn session complete",
         summary.graduated.length + " character" + (summary.graduated.length === 1 ? "" : "s") + " learned",
-        grad.length ? ("In your review pool: " + grad.join(" ")) : "", cfg.returnScreen);
+        grad.length ? ("In your review pool: " + grad.join(" ")) : "", cfg.returnScreen, []);
     }
   }
 
@@ -310,9 +374,15 @@
     show(activeReturnScreen || "screen-home");
   }
 
-  function showDone(title, summaryText, extraNote, backScreenId) {
+  function showDone(title, summaryText, extraNote, backScreenId, failed) {
     $("done-title").textContent = title;
     $("done-summary").textContent = summaryText;
+    var f = $("done-failed");
+    f.innerHTML = "";
+    if (failed && failed.length) {
+      f.innerHTML = '<span class="done-failed-label">Missed:</span> ' +
+        failed.map(function (c) { return '<span class="done-failed-kanji">' + c + "</span>"; }).join(" ");
+    }
     $("done-extra").textContent = extraNote || "";
     $("done-back").onclick = function () { renderHome(); show(backScreenId || "screen-home"); };
     renderHome();
@@ -356,7 +426,7 @@
     $("nav-learn").addEventListener("click", function () { show("screen-learn-entry"); });
     $("nav-review").addEventListener("click", function () { openList("Review", "screen-home"); });
     $("nav-settings").addEventListener("click", function () { show("screen-settings"); });
-    $("home-due").addEventListener("click", function () { startDueReview("screen-home"); });
+    $("home-due").addEventListener("click", function () { startDueReview("screen-home", Filters.DEFAULT_SORT); });
 
     Array.prototype.forEach.call(document.querySelectorAll("[data-home]"), function (b) { b.addEventListener("click", goHome); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-back]"), function (b) {
@@ -384,10 +454,14 @@
     $("filter-apply").addEventListener("click", applyFilters);
     $("filter-reset").addEventListener("click", resetFilters);
     $("list-sort").addEventListener("change", applySort);
+    $("list-search").addEventListener("input", applySearch);
+    $("search-draw").addEventListener("click", function () {
+      alert("Draw-to-search is coming soon. For now, search by typing the kanji, a reading in romaji (e.g. \"sui\"), or an English meaning.");
+    });
     $("list-all").addEventListener("click", function () { listVisible.forEach(function (c) { listSelected[c] = true; }); buildListGrid(); });
     $("list-clear").addEventListener("click", function () { listSelected = {}; buildListGrid(); });
     $("list-start").addEventListener("click", startListSession);
-    $("list-due-banner").addEventListener("click", function () { if (!$("list-due-banner").disabled) startDueReview("screen-list"); });
+    $("list-due-banner").addEventListener("click", function () { if (!$("list-due-banner").disabled) startDueReview("screen-list", reviewOrder()); });
 
     renderHome();
     show("screen-home");

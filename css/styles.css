@@ -338,6 +338,33 @@ html, body {
 /* the list grid can get long with the expanded set */
 .status-grid { max-height: 60vh; overflow-y: auto; padding: 2px; }
 
+/* ============ Phase 5 additions ============ */
+/* search */
+.search-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+.search-row input[type="search"] {
+  flex: 1; font: inherit; padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line); border-radius: 10px; background: var(--card);
+}
+
+/* review-order radios */
+.review-order { border: 1px solid var(--line); border-radius: var(--radius); padding: 0.5rem 1rem 0.75rem; margin: 1rem 0; }
+.review-order legend { font-size: 0.85rem; color: var(--muted); padding: 0 0.4rem; }
+.ro-options { display: flex; flex-wrap: wrap; gap: 0.5rem 1rem; }
+.ro-opt { font-size: 0.9rem; cursor: pointer; user-select: none; }
+
+/* component hover tooltip */
+.component-tip {
+  position: fixed; z-index: 50; pointer-events: none;
+  background: #1f2933; color: #fff; font-size: 0.85rem; line-height: 1.3;
+  padding: 0.4rem 0.6rem; border-radius: 8px; max-width: 220px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+/* failed-kanji list on results */
+.done-failed { margin: 0.25rem 0 0.5rem; min-height: 1rem; }
+.done-failed-label { color: var(--muted); font-size: 0.9rem; }
+.done-failed-kanji { font-size: 1.4rem; color: var(--bad); margin: 0 0.15rem; }
+
 /* ============ footer ============ */
 .app-footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1.5rem 1rem 2rem; }
 .app-footer a { color: var(--muted); }

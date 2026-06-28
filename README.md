@@ -23,7 +23,12 @@ New characters are practiced across **4 progressively harder steps** (Guided →
 recall → Start points → Free recall), **interleaved** when learning several at once.
 A character **graduates into the review pool** after step 4.
 
-### ✎ Review — the shared list: filter, sort, write from memory
+### ✎ Review — the shared list: search, filter, sort, write from memory
+- **Search** for a kanji by typing the character, an English meaning, or a reading
+  in **romaji** (e.g. "sui"). (Handwriting/draw-to-search is a planned fast-follow.)
+- **Display order** (dropdown) sets how the list is shown; a separate **Review
+  order** control (Random by default) sets the order characters come up *during*
+  the session — two independent settings.
 - **Always-on review tracking**: a **tappable** banner shows which characters are
   **due for review** (independent of any filters) — tap it to review exactly those.
 - Each character shows its **status** (New / Learning / Due / Learned) in a
@@ -47,8 +52,14 @@ A character **graduates into the review pool** after step 4.
   rank, Meaning, Readings (hiragana), and Vocabulary (grouped by reading; ≥2 per
   reading and ≥8 total where the data has them).
   - Before you draw, vocab is shown **in hiragana** with the quizzed kanji's portion
-    in **bold**; after you finish, it switches to the **written form + hiragana +
-    English** together, and the character's **radical** is revealed in a distinct colour.
+    in **bold**; after you finish, the written form is shown with the hiragana
+    reading and English **hidden until tapped**.
+  - **Radical & component highlights** (from KanjiVG): after drawing, the radical's
+    strokes are coloured on the character and shown as **radical + Japanese name in
+    hiragana**; for compound kanji each component is **hoverable**, showing its
+    meaning and two main readings.
+- **Results** show the score as **distinct kanji correct** plus a **list of the
+  kanji you missed**.
 - **Per-stroke help**: get a stroke wrong and you get one redo; miss again and a
   **hint** is shown — repeating per stroke until the character is done.
 - **Advancing**: a clean write auto-advances after ~1 second (tap during that second
@@ -95,6 +106,13 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
   with full KANJIDIC2 radical data.
 - **Home counts** show total-learned and due-for-review; a mastery-level breakdown
   is a planned future addition (TODO in `renderHome`).
+- **Stroke data is uniformly local KanjiVG** — verified all kanji have valid local
+  stroke files with no missing/fallback source (so the calligraphic look is the
+  standard KanjiVG style, not a loading gap).
+- **Draw-to-search** (handwriting lookup) is deferred; typed search (character /
+  reading / meaning) ships first.
+- **Radical Japanese names** come from a hand-built map over the radicals in the
+  current set; component meanings/readings are looked up from the KANJIDIC2 dataset.
 
 ---
 
@@ -131,6 +149,7 @@ js/drawscreen.js      The shared "draw a character" screen + cue panel
 js/app.js             Screen router + Browse / Quiz / Learn controllers
 data/kanji-meta.js    Curated metadata + vocabulary for the 14 core kanji
 data/kanji-extra.js   Auto-generated metadata for ~90 more kanji (KANJIDIC2-derived)
+data/kanji-components.js  Radical + component stroke groupings (from KanjiVG)
 data/kanji/*.json     Stroke-order data per kanji (KanjiVG → HanziWriter format)
 vendor/               The HanziWriter library (bundled so it works offline)
 ```

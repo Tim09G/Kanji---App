@@ -46,6 +46,13 @@ window.DrawScreen = (function () {
   function metaFor(char) {
     return (window.KANJI_META || []).filter(function (m) { return m.char === char; })[0];
   }
+  function componentsOf(char) { return (window.KANJI_COMPONENTS || {})[char]; }
+  function radicalOf(char) {
+    var c = componentsOf(char);
+    if (c && c.radical) return c.radical;        // { char, name(hiragana), strokes }
+    var m = metaFor(char);
+    return m && m.radical ? { char: m.radical.char, name: m.radical.name } : null;
+  }
   function fetchStrokeData(char) {
     return fetch("data/kanji/" + encodeURIComponent(char) + ".json").then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
@@ -143,14 +150,16 @@ window.DrawScreen = (function () {
       root.appendChild(vb);
     }
 
-    // After completing the character, reveal its radical in a distinct colour (D5).
-    if (task && task.vocabRevealed && meta.radical) {
+    // After completing the character, reveal its radical: the radical character
+    // itself + its Japanese name in hiragana (C1), in a distinct colour.
+    var radInfo = radicalOf(meta.char);
+    if (task && task.vocabRevealed && radInfo) {
       var radBlock = block("Radical");
       var rv = document.createElement("div");
       rv.className = "cue-value";
       var rad = document.createElement("span");
       rad.className = "radical-reveal";
-      rad.textContent = meta.radical.char + (meta.radical.name && meta.radical.name !== meta.radical.char ? " (" + meta.radical.name + ")" : "");
+      rad.textContent = radInfo.char + (radInfo.name ? "（" + radInfo.name + "）" : "");
       rv.appendChild(rad);
       radBlock.appendChild(rv);
       root.appendChild(radBlock);
@@ -171,11 +180,15 @@ window.DrawScreen = (function () {
     item.className = "vocab-item";
 
     if (task && task.vocabRevealed) {
-      // After drawing: written form + hiragana reading + English, all together (D4).
-      var jp = document.createElement("span"); jp.className = "vocab-jp"; jp.textContent = w.jp;
-      var rd = document.createElement("span"); rd.className = "vocab-gloss"; rd.textContent = "（" + readingText(w) + "）";
-      var en = document.createElement("span"); en.className = "vocab-gloss"; en.textContent = " — " + w.en;
-      item.appendChild(jp); item.appendChild(rd); item.appendChild(en);
+      // After drawing: written form shown; hiragana reading + English hidden
+      // until tapped (same hidden-until-interacted pattern as before drawing).
+      var jbtn = document.createElement("button");
+      jbtn.type = "button"; jbtn.className = "vocab-word vocab-jp"; jbtn.textContent = w.jp;
+      jbtn.title = readingText(w) + " — " + w.en;
+      var g2 = document.createElement("span");
+      g2.className = "vocab-gloss"; g2.textContent = "（" + readingText(w) + "） — " + w.en; g2.hidden = true;
+      jbtn.addEventListener("click", function () { g2.hidden = !g2.hidden; });
+      item.appendChild(jbtn); item.appendChild(g2);
       return item;
     }
 
@@ -215,6 +228,58 @@ window.DrawScreen = (function () {
     c.setAttribute("cx", pt[0]); c.setAttribute("cy", pt[1]); c.setAttribute("r", "45");
     c.setAttribute("fill", "#2f6fed"); c.setAttribute("fill-opacity", "0.85");
     g.appendChild(c);
+  }
+
+  // ===== radical / component highlight overlay (C2/C3) =====
+  var RAD_COLOR = "#d6453d";    // radical strokes (red)
+  var HOVER_COLOR = "#2f6fed";  // component hover (blue)
+  var tipEl = null;
+  function ensureTip() {
+    if (tipEl) return tipEl;
+    tipEl = document.createElement("div");
+    tipEl.className = "component-tip"; tipEl.hidden = true;
+    document.body.appendChild(tipEl);
+    return tipEl;
+  }
+  function showTip(html, x, y) { var t = ensureTip(); t.innerHTML = html; t.hidden = false; moveTip(x, y); }
+  function moveTip(x, y) { if (tipEl && !tipEl.hidden) { tipEl.style.left = (x + 14) + "px"; tipEl.style.top = (y + 14) + "px"; } }
+  function hideTip() { if (tipEl) tipEl.hidden = true; }
+  function clearHighlights() { var ov = els.target.querySelector(".hl-overlay"); if (ov) ov.parentNode.removeChild(ov); hideTip(); }
+
+  function ovPath(d, fill, hit) {
+    var pth = document.createElementNS(SVGNS, "path");
+    pth.setAttribute("d", d); pth.setAttribute("fill", fill);
+    if (hit) { pth.style.pointerEvents = "all"; pth.style.cursor = "help"; }
+    else { pth.style.pointerEvents = "none"; }
+    return pth;
+  }
+
+  // After completion, overlay coloured paths (from our own stroke data) onto the
+  // drawn character: radical strokes are coloured; components are hover regions.
+  function applyHighlights(char, attempt) {
+    var data = componentsOf(char);
+    if (!data || !strokeData) return;
+    var g = els.target.querySelector("svg > g");
+    if (!g) { if ((attempt || 0) < 20) requestAnimationFrame(function () { applyHighlights(char, (attempt || 0) + 1); }); return; }
+    clearHighlights();
+    var total = strokeData.strokes.length;
+    var ov = document.createElementNS(SVGNS, "g"); ov.setAttribute("class", "hl-overlay");
+
+    if (data.radical && data.radical.strokes && data.radical.strokes.length < total) {
+      data.radical.strokes.forEach(function (i) { if (strokeData.strokes[i]) ov.appendChild(ovPath(strokeData.strokes[i], RAD_COLOR, false)); });
+    }
+    (data.components || []).forEach(function (cmp) {
+      var hit = [];
+      cmp.strokes.forEach(function (i) { if (strokeData.strokes[i]) { var pp = ovPath(strokeData.strokes[i], "transparent", true); ov.appendChild(pp); hit.push(pp); } });
+      var tip = "<strong>" + cmp.char + "</strong>" + (cmp.meaning ? " — " + cmp.meaning : "") +
+                (cmp.readings && cmp.readings.length ? "<br>" + cmp.readings.join("、") : "");
+      hit.forEach(function (q) {
+        q.addEventListener("mouseenter", function (e) { hit.forEach(function (z) { z.setAttribute("fill", HOVER_COLOR); }); showTip(tip, e.clientX, e.clientY); });
+        q.addEventListener("mousemove", function (e) { moveTip(e.clientX, e.clientY); });
+        q.addEventListener("mouseleave", function () { hit.forEach(function (z) { z.setAttribute("fill", "transparent"); }); hideTip(); });
+      });
+    });
+    g.appendChild(ov);
   }
 
   // ===== writer + quiz =====
@@ -271,6 +336,7 @@ window.DrawScreen = (function () {
     // Reveal vocab written form + readings + meaning, and the radical (D4/D5).
     t.vocabRevealed = true;
     renderCueContent(t.char);
+    applyHighlights(t.char);   // colour the radical + enable component hover (C2/C3)
 
     var isReviewFail = (t.kind === "review" && !success);
     // On a failed/given-up review attempt, reveal the correct character (B2.1).
@@ -354,7 +420,7 @@ window.DrawScreen = (function () {
     task = t;
     done = false; advancing = false; hintShown = false; task.vocabRevealed = false;
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
-    disarmTap();
+    disarmTap(); clearHighlights();
     els.modeLabel.textContent = t.modeLabel || "";
     els.stepLabel.textContent = t.stepLabel || "";
     els.progressLabel.textContent = t.progressLabel || "";
