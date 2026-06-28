@@ -33,6 +33,9 @@ window.DrawScreen = (function () {
   var advanceTimer = null;   // pending auto-advance timeout
   var onBack = null;         // callback for the back button
   var hintShown = false;     // did the character ever need a hint (= overall failure)
+  var prevChar = null;       // the previously-shown character (for "Prior kanji")
+  var inPrior = false;       // currently viewing the prior character (read-only)
+  var priorSaved = null;     // saved current-task state while viewing prior
 
   // ---- helpers ----
   function kataToHira(s) {
@@ -178,6 +181,7 @@ window.DrawScreen = (function () {
   function vocabItem(w) {
     var item = document.createElement("div");
     item.className = "vocab-item";
+    if (window.Speak) item.appendChild(window.Speak.speakButton(w.jp)); // G: audio
 
     if (task && task.vocabRevealed) {
       // After drawing: written form shown; hiragana reading + English hidden
@@ -365,6 +369,7 @@ window.DrawScreen = (function () {
   function startAutoAdvance() {
     setPrompt("Moving on… (tap to pause)");
     advanceTimer = setTimeout(function () { advance(); }, AUTO_ADVANCE_MS);
+    if (els.prior) els.prior.disabled = true;   // D: disabled during the countdown
     disarmTap();
     tapArmTime = Date.now();
     // Tapping during the window cancels auto-advance and holds for an explicit tap (B5).
@@ -384,6 +389,7 @@ window.DrawScreen = (function () {
     tapArmTime = Date.now();
     tapHandler = function () { if (freshTap()) advance(); };
     els.target.addEventListener("click", tapHandler);
+    if (els.prior) els.prior.disabled = !prevChar || inPrior;  // D: re-enabled when countdown cancelled / held
   }
   function disarmTap() {
     if (tapHandler) { els.target.removeEventListener("click", tapHandler); tapHandler = null; }
@@ -394,24 +400,84 @@ window.DrawScreen = (function () {
     advancing = true;
     disarmTap();
     var t = task; task = null;
+    prevChar = t.char;   // D: this character becomes the "prior" for the next one
     t.onDone({ completed: done, success: !!t._success, hintShown: !!t._hintShown, mistakes: t._mistakes || 0, gaveUp: !!t._gaveUp, skipped: false });
   }
 
   // ===== buttons =====
   function onReveal() {
-    if (!task || done) return;
+    if (inPrior || !task || done) return;
     if (writer) writer.cancelQuiz();
     if (writer) { writer.showOutline(); writer.animateCharacter(); }
     task._gaveUp = true;
     finish(task._mistakes || 99, true);
   }
   function onSkip() {
-    if (!task) return;
+    if (inPrior || !task) return;
     if (writer) writer.cancelQuiz();
     disarmTap();
     var t = task; task = null;
+    prevChar = t.char;
     advancing = true;
     t.onDone({ completed: false, success: false, mistakes: 0, gaveUp: false, skipped: true });
+  }
+
+  // ===== Prior kanji (D): read-only peek at the previous character =====
+  function buildReadOnly(char, data) {
+    els.target.innerHTML = "";
+    writer = HanziWriter.create(els.target, char, {
+      width: SIZE, height: SIZE, padding: PAD, showCharacter: true, showOutline: false,
+      strokeColor: "#1f2933", charDataLoader: function (c, cb) { cb(data); },
+    });
+    applyHighlights(char);
+  }
+  function onPrior() {
+    if (inPrior || !prevChar || (els.prior && els.prior.disabled)) return;
+    inPrior = true;
+    priorSaved = { task: task, done: done, hintShown: hintShown, strokeData: strokeData,
+                   stepLabel: els.stepLabel.textContent, progressLabel: els.progressLabel.textContent };
+    if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
+    disarmTap();
+    if (writer) { try { writer.cancelQuiz(); } catch (e) {} }
+    if (els.prior) els.prior.disabled = true;
+    els.stepLabel.textContent = "◀ Previous kanji";
+    setStatus("");
+    setPrompt("Showing the previous kanji — tap it to return.");
+    task = { char: prevChar, vocabRevealed: true };   // stub so cues render fully
+    renderCuePanel(prevChar);
+    var pc = prevChar;
+    fetchStrokeData(pc).then(function (data) {
+      if (!inPrior) return;
+      strokeData = data;
+      buildReadOnly(pc, data);
+    });
+    disarmTap();
+    tapHandler = function () { exitPriorView(); };
+    els.target.addEventListener("click", tapHandler);
+  }
+  function exitPriorView() {
+    if (!inPrior) return;
+    inPrior = false;
+    disarmTap();
+    var s = priorSaved; priorSaved = null;
+    task = s.task; done = s.done; hintShown = s.hintShown; strokeData = s.strokeData;
+    els.stepLabel.textContent = s.stepLabel;
+    els.progressLabel.textContent = s.progressLabel;
+    renderCuePanel(task.char);
+    if (done) {
+      // current was completed and held — re-render completed and re-arm tap-to-continue
+      buildReadOnly(task.char, strokeData);
+      setStatus(task._success ? "Correct!" : "", task._success ? "good" : "bad");
+      setPrompt("Tap the character to continue.");
+      armTap();
+    } else {
+      // current not yet drawn — resume the quiz fresh
+      hintShown = false;
+      setPrompt(promptFor(task.level));
+      buildWriter(task.char, task.level);
+      startQuiz(task.level);
+      if (els.prior) els.prior.disabled = !prevChar;
+    }
   }
 
   // ===== public: run one task =====
@@ -427,6 +493,7 @@ window.DrawScreen = (function () {
     setStatus("");
     setPrompt(promptFor(t.level));
     renderCuePanel(t.char);
+    if (els.prior) els.prior.disabled = !prevChar;  // D: enabled if there is a previous character
 
     fetchStrokeData(t.char).then(function (data) {
       strokeData = data;
@@ -452,6 +519,7 @@ window.DrawScreen = (function () {
     disarmTap();
     if (writer) { try { writer.cancelQuiz(); } catch (e) {} }
     done = true; advancing = true; task = null;
+    inPrior = false; priorSaved = null; prevChar = null;   // reset prior state between sessions
   }
 
   function init(elements, callbacks) {
@@ -460,6 +528,7 @@ window.DrawScreen = (function () {
     els.reveal.addEventListener("click", onReveal);
     els.skip.addEventListener("click", onSkip);
     if (els.back) els.back.addEventListener("click", function () { if (onBack) onBack(); });
+    if (els.prior) els.prior.addEventListener("click", onPrior);
   }
 
   return { init: init, run: run, stop: stop };

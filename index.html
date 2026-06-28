@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=6" />
+  <link rel="stylesheet" href="css/styles.css?v=7" />
 </head>
 <body>
   <header class="app-header">
@@ -19,15 +19,10 @@
       <p class="home-counts" id="home-counts">—</p>
       <button id="home-due" class="due-pill" type="button" hidden></button>
       <div class="home-menu">
-        <button id="nav-learn" class="mode-card" type="button">
-          <span class="mode-emoji">🌱</span>
-          <span class="mode-title">Learn</span>
-          <span class="mode-desc">Pick up new characters — sequentially or your own choice.</span>
-        </button>
-        <button id="nav-review" class="mode-card" type="button">
+        <button id="nav-study" class="mode-card" type="button">
           <span class="mode-emoji">✎</span>
-          <span class="mode-title">Review</span>
-          <span class="mode-desc">Filter, sort and write characters from memory.</span>
+          <span class="mode-title">Study</span>
+          <span class="mode-desc">Review what's due and mix in new characters — one place.</span>
         </button>
         <button id="nav-browse" class="mode-card" type="button">
           <span class="mode-emoji">👁</span>
@@ -61,14 +56,16 @@
         <button class="btn btn-ghost" data-home type="button">← Home</button>
         <h2>Browse</h2>
       </div>
+      <div class="search-row">
+        <input id="browse-search" type="search" placeholder="Search kanji, reading (romaji) or meaning…" />
+        <button id="browse-search-draw" class="btn btn-ghost" type="button" title="Draw to search">✎ Draw</button>
+      </div>
       <nav class="kanji-picker" id="browse-picker"></nav>
       <div class="study-area">
         <div class="writer-column">
           <div id="browse-target" class="writer-target"></div>
           <div class="controls">
             <button id="browse-animate" class="btn btn-primary" type="button">▶ Animate</button>
-            <button id="browse-reset" class="btn btn-ghost" type="button">↺ Reset</button>
-            <button id="browse-random" class="btn btn-ghost" type="button">🎲 Random</button>
           </div>
         </div>
         <aside class="info-column">
@@ -80,53 +77,20 @@
               <dt>Kun (訓)</dt><dd id="browse-kun">—</dd>
               <dt>Strokes</dt><dd id="browse-strokes">—</dd>
               <dt>Frequency</dt><dd id="browse-freq">—</dd>
+              <dt>JLPT</dt><dd id="browse-jlpt">—</dd>
               <dt>Radical</dt><dd id="browse-radical">—</dd>
+              <dt>Variants</dt><dd id="browse-variants">—</dd>
             </dl>
+            <div class="browse-vocab">
+              <div class="cue-label">Vocabulary</div>
+              <div id="browse-vocab-list"></div>
+            </div>
           </div>
         </aside>
       </div>
     </section>
 
-    <!-- ============ LEARN ENTRY (Sequential vs Choose your own) ============ -->
-    <section id="screen-learn-entry" class="screen">
-      <div class="screen-bar">
-        <button class="btn btn-ghost" data-home type="button">← Home</button>
-        <h2>Learn</h2>
-      </div>
-      <p class="hint">How would you like to choose what to learn?</p>
-      <div class="home-menu">
-        <button id="learn-seq-btn" class="mode-card" type="button">
-          <span class="mode-emoji">➡️</span>
-          <span class="mode-title">Sequential</span>
-          <span class="mode-desc">Let the app pick the next new characters in study order.</span>
-        </button>
-        <button id="learn-choose-btn" class="mode-card" type="button">
-          <span class="mode-emoji">✋</span>
-          <span class="mode-title">Choose your own</span>
-          <span class="mode-desc">Pick specific characters from the full list (with filters).</span>
-        </button>
-      </div>
-    </section>
-
-    <!-- ============ LEARN SEQUENTIAL (slider) ============ -->
-    <section id="screen-learn-seq" class="screen">
-      <div class="screen-bar">
-        <button class="btn btn-ghost" data-back="screen-learn-entry" type="button">← Back</button>
-        <h2>Learn — sequential</h2>
-      </div>
-      <p class="learn-meta"><span id="seq-available">0</span> new characters available.</p>
-      <div class="slider-row">
-        <label for="seq-slider">How many this session?</label>
-        <input type="range" id="seq-slider" min="1" max="50" value="5" />
-        <output id="seq-value" class="slider-value">5</output>
-      </div>
-      <p class="learn-preview" id="seq-preview"></p>
-      <div class="screen-actions">
-        <button id="seq-start" class="btn btn-primary" type="button">Start learning →</button>
-      </div>
-    </section>
-
-    <!-- ============ SHARED LIST (Review + Learn-choose-your-own) ============ -->
+    <!-- ============ SHARED LIST (Study: review + new) ============ -->
     <section id="screen-list" class="screen">
       <div class="screen-bar">
         <button class="btn btn-ghost" data-back="auto" type="button">← Back</button>
@@ -173,6 +137,13 @@
         <div id="review-order-options" class="ro-options"></div>
       </fieldset>
 
+      <!-- New kanji to mix in (C): 0 = pure review of the selection. -->
+      <div class="slider-row">
+        <label for="new-slider">New kanji to add: <output id="new-value" class="slider-value">0</output></label>
+        <input type="range" id="new-slider" min="0" max="50" value="0" />
+        <span id="new-preview" class="hint"></span>
+      </div>
+
       <div class="screen-actions">
         <button id="list-start" class="btn btn-primary" type="button" disabled>Start →</button>
       </div>
@@ -194,6 +165,7 @@
           <p class="draw-prompt" id="draw-prompt"></p>
           <p class="draw-status" id="draw-status" role="status" aria-live="polite"></p>
           <div class="controls">
+            <button id="draw-prior" class="btn btn-ghost" type="button" disabled>◀ Prior kanji</button>
             <button id="draw-reveal" class="btn btn-ghost" type="button">Show answer</button>
             <button id="draw-skip" class="btn btn-ghost" type="button">Skip</button>
           </div>
@@ -211,10 +183,19 @@
     <section id="screen-done" class="screen">
       <div class="done-card">
         <div class="done-emoji">🎉</div>
-        <h2 id="done-title">Done</h2>
-        <p id="done-summary" class="done-summary"></p>
-        <div id="done-failed" class="done-failed"></div>
-        <p id="done-extra" class="done-extra"></p>
+        <h2 id="done-title">Session Complete</h2>
+        <div class="done-row" id="done-learned-row" hidden>
+          <span class="done-rlabel">Newly Learned:</span>
+          <span id="done-learned" class="done-learned-kanji"></span>
+        </div>
+        <div class="done-row" id="done-reviewed-row" hidden>
+          <span class="done-rlabel">Reviewed Kanji:</span>
+          <span id="done-reviewed" class="done-score"></span>
+        </div>
+        <div class="done-row" id="done-missed-row" hidden>
+          <span class="done-rlabel">Missed:</span>
+          <span id="done-missed" class="done-missed-kanji"></span>
+        </div>
         <button id="done-back" class="btn btn-primary" type="button">Continue</button>
       </div>
     </section>
@@ -229,13 +210,13 @@
   </footer>
 
   <script src="vendor/hanzi-writer.min.js"></script>
-  <script src="data/kanji-meta.js?v=6"></script>
-  <script src="data/kanji-extra.js?v=6"></script>
-  <script src="data/kanji-components.js?v=6"></script>
-  <script src="js/store.js?v=6"></script>
-  <script src="js/scheduler.js?v=6"></script>
-  <script src="js/filters.js?v=6"></script>
-  <script src="js/drawscreen.js?v=6"></script>
-  <script src="js/app.js?v=6"></script>
+  <script src="data/kanji-meta.js?v=7"></script>
+  <script src="data/kanji-extra.js?v=7"></script>
+  <script src="data/kanji-components.js?v=7"></script>
+  <script src="js/store.js?v=7"></script>
+  <script src="js/scheduler.js?v=7"></script>
+  <script src="js/filters.js?v=7"></script>
+  <script src="js/drawscreen.js?v=7"></script>
+  <script src="js/app.js?v=7"></script>
 </body>
 </html>

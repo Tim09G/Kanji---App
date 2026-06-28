@@ -17,6 +17,12 @@ window.Filters = (function () {
   function meta(char) {
     return (window.KANJI_META || []).filter(function (m) { return m.char === char; })[0];
   }
+  function radicalOf(char) {
+    var c = (window.KANJI_COMPONENTS || {})[char];
+    if (c && c.radical) return c.radical;
+    var m = meta(char);
+    return m && m.radical ? m.radical : null;
+  }
   function allChars() { return (window.KANJI_META || []).map(function (m) { return m.char; }); }
   function uniqueSorted(arr) {
     return arr.filter(function (v, i, a) { return a.indexOf(v) === i; }).sort(function (a, b) { return a - b; });
@@ -77,7 +83,7 @@ window.Filters = (function () {
       },
     },
 
-    // Classifying radical.
+    // Classifying radical (KANJIDIC-aligned, from KanjiVG component data).
     radical: {
       id: "radical",
       label: "Radical",
@@ -85,13 +91,13 @@ window.Filters = (function () {
         var seen = {};
         var opts = [];
         allChars().forEach(function (c) {
-          var r = meta(c).radical;
-          if (r && !seen[r.char]) { seen[r.char] = true; opts.push({ value: r.char, label: r.char + " (" + r.name + ")" }); }
+          var r = radicalOf(c);
+          if (r && !seen[r.char]) { seen[r.char] = true; opts.push({ value: r.char, label: r.char + (r.name ? "（" + r.name + "）" : "") }); }
         });
         return opts;
       },
       predicate: function (rad) {
-        return function (char) { var r = meta(char).radical; return r && r.char === rad; };
+        return function (char) { var r = radicalOf(char); return r && r.char === rad; };
       },
     },
 

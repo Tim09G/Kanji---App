@@ -365,6 +365,26 @@ html, body {
 .done-failed-label { color: var(--muted); font-size: 0.9rem; }
 .done-failed-kanji { font-size: 1.4rem; color: var(--bad); margin: 0 0.15rem; }
 
+/* ============ Phase 6 additions ============ */
+/* audio button (G) */
+.speak-btn {
+  background: none; border: none; cursor: pointer; padding: 0 0.25rem 0 0;
+  font-size: 0.95rem; line-height: 1; vertical-align: middle; opacity: 0.7;
+}
+.speak-btn:hover { opacity: 1; }
+
+/* results screen rows (A) */
+.done-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem; justify-content: center; margin: 0.5rem 0; }
+.done-rlabel { color: var(--muted); font-size: 0.9rem; }
+.done-learned-kanji { font-size: 1.5rem; color: var(--accent); }
+.done-score { font-size: 1.2rem; font-weight: 700; }
+.done-missed-kanji { font-size: 1.5rem; color: var(--bad); }
+
+/* browse vocab list (F) */
+.browse-vocab { margin-top: 1rem; text-align: left; border-top: 1px solid var(--line); padding-top: 0.75rem; }
+.browse-vocab .vocab-item { margin: 0.3rem 0; }
+.browse-vocab .vocab-jp { font-weight: 600; }
+
 /* ============ footer ============ */
 .app-footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1.5rem 1rem 2rem; }
 .app-footer a { color: var(--muted); }

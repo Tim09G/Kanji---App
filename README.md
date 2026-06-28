@@ -9,21 +9,19 @@ Built in **phases**. This README reflects what works today.
 
 ## ✅ What works now
 
-Modes reached from the Home screen: **Learn**, **Review**, **Browse**, **Settings**.
-Learn and Review share **one kanji list** and **one session engine**, so mixing new
-and due characters behaves consistently.
+Modes reached from the Home screen: **Study**, **Browse**, **Settings**.
+Learn and review are unified into one **Study** flow over a single kanji list, so
+mixing new and due characters behaves consistently.
 
-### 🌱 Learn — pick up new characters
-Choose how to pick what to learn:
-- **Sequential** — a **slider (1–50)** picks the next new characters in study order.
-- **Choose your own** — drops you into the **shared list** (same filters/randomize as
-  Review), since choosing your own to learn is the same action as choosing to review.
-
-New characters are practiced across **4 progressively harder steps** (Guided → Order
-recall → Start points → Free recall), **interleaved** when learning several at once.
-A character **graduates into the review pool** after step 4.
-
-### ✎ Review — the shared list: search, filter, sort, write from memory
+### ✎ Study — the shared list: search, filter, sort, write from memory
+- A single entry point for any session: pure review, pure new-learning, or a mix.
+- A **"New kanji to add" slider** at the bottom mixes in that many brand-new
+  characters (0 = review only); the rest of the session comes from your selection.
+- New characters are practiced across **4 progressively harder steps** (Guided →
+  Order recall → Start points → Free recall), interleaved; a character **graduates
+  into the review pool** after step 4.
+- **Prior kanji** button on the draw screen shows the previous character read-only;
+  tap to return and continue (disabled during the 1s auto-advance countdown).
 - **Search** for a kanji by typing the character, an English meaning, or a reading
   in **romaji** (e.g. "sui"). (Handwriting/draw-to-search is a planned fast-follow.)
 - **Display order** (dropdown) sets how the list is shown; a separate **Review
@@ -39,8 +37,10 @@ A character **graduates into the review pool** after step 4.
 - Starting a session handles each character by its status: new ones get the
   scaffolding, known ones get reviewed — mixed together.
 
-### 👁 Browse — study stroke order
-- Animated stroke order with readings, meaning, stroke count and frequency.
+### 👁 Browse — full per-kanji reference
+- Search (typed) + animated stroke order, with the full info panel: readings,
+  meaning, stroke count, frequency, JLPT, radical, alternate radical-usage forms
+  (e.g. 手 → 扌), and the complete vocabulary list with **audio** (🔊).
 
 ### ⚙️ Settings
 - **Reset progress** lives here now, behind **two confirmations**.
@@ -58,8 +58,9 @@ A character **graduates into the review pool** after step 4.
     strokes are coloured on the character and shown as **radical + Japanese name in
     hiragana**; for compound kanji each component is **hoverable**, showing its
     meaning and two main readings.
-- **Results** show the score as **distinct kanji correct** plus a **list of the
-  kanji you missed**.
+- **Vocabulary audio** (🔊) plays each example word (Web Speech API).
+- **Results** ("Session Complete") show **Newly Learned** (blue), the **Reviewed
+  Kanji** score (distinct kanji correct), and the **Missed** kanji (red).
 - **Per-stroke help**: get a stroke wrong and you get one redo; miss again and a
   **hint** is shown — repeating per stroke until the character is done.
 - **Advancing**: a clean write auto-advances after ~1 second (tap during that second
@@ -113,6 +114,11 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
   reading / meaning) ships first.
 - **Radical Japanese names** come from a hand-built map over the radicals in the
   current set; component meanings/readings are looked up from the KANJIDIC2 dataset.
+- **Radical source**: the classifying radical uses KanjiVG's KANJIDIC-aligned radical
+  tags with `general` > `tradit` > `nelson` priority (a standalone KANJIDIC2 radical
+  JSON wasn't reachable from this environment). This gives the Kangxi classical radical
+  (e.g. 半 → 十, 前 → 刂). Components descend through positional wrappers so compounds
+  like 前 decompose correctly.
 
 ---
 

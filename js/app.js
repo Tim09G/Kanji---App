@@ -35,6 +35,24 @@
     return out;
   }
 
+  // G: vocabulary audio via the Web Speech API (Japanese TTS).
+  window.Speak = (function () {
+    function speak(text) {
+      if (!window.speechSynthesis) return;
+      var u = new SpeechSynthesisUtterance(text);
+      u.lang = "ja-JP"; u.rate = 0.9;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(u);
+    }
+    function speakButton(text) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "speak-btn"; b.title = "Play audio"; b.setAttribute("aria-label", "Play audio"); b.textContent = "🔊";
+      b.addEventListener("click", function (e) { e.stopPropagation(); speak(text); });
+      return b;
+    }
+    return { speak: speak, speakButton: speakButton };
+  })();
+
   var STEP = {
     1: { level: "guided", name: "Guided" },
     2: { level: "order", name: "Order recall" },
@@ -78,12 +96,12 @@
 
   // ================= BROWSE =================
   var browseWriter = null, browseChar = null;
-  function buildBrowsePicker() {
+  function buildBrowsePicker(chars) {
     var picker = $("browse-picker"); picker.innerHTML = "";
-    META.forEach(function (m) {
+    (chars || allChars()).forEach(function (ch) {
       var chip = document.createElement("button");
-      chip.type = "button"; chip.className = "kanji-chip"; chip.textContent = m.char; chip.dataset.char = m.char;
-      chip.addEventListener("click", function () { browseSelect(m.char); });
+      chip.type = "button"; chip.className = "kanji-chip"; chip.textContent = ch; chip.dataset.char = ch;
+      chip.addEventListener("click", function () { browseSelect(ch); });
       picker.appendChild(chip);
     });
   }
@@ -93,11 +111,18 @@
     Array.prototype.forEach.call($("browse-picker").children, function (chip) { chip.classList.toggle("active", chip.dataset.char === char); });
     $("browse-char").textContent = char;
     $("browse-meaning").textContent = meta.meaning;
-    $("browse-on").textContent = meta.on.join("、");
-    $("browse-kun").textContent = meta.kun.join("、");
+    $("browse-on").textContent = meta.on.join("、") || "—";
+    $("browse-kun").textContent = meta.kun.join("、") || "—";
     $("browse-strokes").textContent = meta.strokeCount;
     $("browse-freq").textContent = "#" + meta.freq;
+    $("browse-jlpt").textContent = meta.jlpt ? ("N" + meta.jlpt) : "—";
     $("browse-radical").textContent = radicalText(char);
+    // F: alternate forms / radical-usage variants
+    var vars = (window.KANJI_VARIANTS || {})[char];
+    $("browse-variants").textContent = vars && vars.length
+      ? vars.map(function (v) { return v.char + (v.name ? "（" + v.name + "）" : ""); }).join("、") : "—";
+    // F: full vocabulary list (with audio)
+    renderBrowseVocab(meta);
     $("browse-target").innerHTML = "";
     browseWriter = HanziWriter.create($("browse-target"), char, {
       width: 300, height: 300, padding: 5, showCharacter: true, showOutline: true,
@@ -105,7 +130,30 @@
       charDataLoader: function (c, done) { fetch("data/kanji/" + encodeURIComponent(c) + ".json").then(function (r) { return r.json(); }).then(done); },
     });
   }
-  function browseRandom() { var pick; do { pick = META[Math.floor(Math.random() * META.length)].char; } while (META.length > 1 && pick === browseChar); browseSelect(pick); }
+  function renderBrowseVocab(meta) {
+    var root = $("browse-vocab-list"); root.innerHTML = "";
+    if (!meta.vocab || !meta.vocab.length) { root.innerHTML = '<span class="cue-empty">No vocabulary yet for this kanji.</span>'; return; }
+    meta.vocab.forEach(function (w) {
+      var item = document.createElement("div"); item.className = "vocab-item";
+      var reading = w.r.map(function (s) { return s.t; }).join("");
+      item.appendChild(window.Speak.speakButton(w.jp));
+      var jp = document.createElement("span"); jp.className = "vocab-jp"; jp.textContent = " " + w.jp;
+      var gl = document.createElement("span"); gl.className = "vocab-gloss"; gl.textContent = "（" + reading + "） — " + w.en;
+      item.appendChild(jp); item.appendChild(gl);
+      root.appendChild(item);
+    });
+  }
+  function openBrowse() {
+    buildBrowsePicker();
+    $("browse-search").value = "";
+    browseSelect(META[0].char);
+    show("screen-browse");
+  }
+  function browseSearch() {
+    var matches = searchChars($("browse-search").value);
+    buildBrowsePicker(matches);
+    if (matches.length) browseSelect(matches[0]);
+  }
 
   // ================= SHARED LIST =================
   var listSelected = {};
@@ -133,10 +181,11 @@
     updateListStart();
   }
   function selectedListChars() { return allChars().filter(function (c) { return listSelected[c]; }); }
+  function newSliderVal() { var s = $("new-slider"); return s ? (parseInt(s.value, 10) || 0) : 0; }
   function updateListStart() {
     var n = selectedListChars().length;
     $("list-count").textContent = n + " selected";
-    $("list-start").disabled = n === 0;
+    $("list-start").disabled = (n === 0 && newSliderVal() === 0);
   }
 
   function buildFilterRows() {
@@ -198,24 +247,45 @@
     return r ? r.value : Filters.DEFAULT_SORT;
   }
 
-  // --- search (D) ---
+  // --- search (D / F) — shared by the Study list and Browse ---
+  function searchChars(query) {
+    var q = (query || "").trim().toLowerCase();
+    if (!q) return allChars();
+    return allChars().filter(function (c) {
+      if (c === q) return true;
+      var m = metaOf(c);
+      if (m.meaning && m.meaning.toLowerCase().indexOf(q) >= 0) return true;
+      var kana = (m.on || []).concat(m.kun || []).join(" ");
+      if (kana.toLowerCase().indexOf(q) >= 0) return true;
+      if (kanaToRomaji(kana).indexOf(q) >= 0) return true;
+      return false;
+    });
+  }
+  function drawSearchNotice() {
+    alert("Draw-to-search is coming soon. For now, search by typing the kanji, a reading in romaji (e.g. \"sui\"), or an English meaning.");
+  }
   function applySearch() {
-    var q = $("list-search").value.trim().toLowerCase();
-    var base = allChars();
-    if (q) {
-      base = base.filter(function (c) {
-        if (c === q) return true;
-        var m = metaOf(c);
-        if (m.meaning && m.meaning.toLowerCase().indexOf(q) >= 0) return true;
-        var kana = (m.on || []).concat(m.kun || []).join(" ");
-        if (kana.toLowerCase().indexOf(q) >= 0) return true;
-        if (kanaToRomaji(kana).indexOf(q) >= 0) return true;
-        return false;
-      });
-    }
-    listVisible = Filters.sortChars(base, currentSort());
+    var q = $("list-search").value;
+    listVisible = Filters.sortChars(searchChars(q), currentSort());
     buildListGrid();
-    $("filter-match").textContent = q ? (base.length + " match") : "";
+    $("filter-match").textContent = q.trim() ? (listVisible.length + " match") : "";
+  }
+
+  // --- new-kanji slider (C): mix N brand-new characters into the session ---
+  function newChars(n) { return Store.nextNewChars(n); }
+  function updateNewSlider() {
+    var n = parseInt($("new-slider").value, 10) || 0;
+    $("new-value").textContent = n;
+    var avail = Store.nextNewChars(999);
+    $("new-preview").textContent = n > 0 ? ("next: " + Store.nextNewChars(n).join(" ")) : "(review only)";
+    updateListStart();
+  }
+  function setupNewSlider() {
+    var avail = Store.nextNewChars(999).length;
+    var s = $("new-slider");
+    s.max = String(Math.min(50, Math.max(0, avail)));
+    s.value = "0";
+    updateNewSlider();
   }
   function renderListDue() {
     var due = Scheduler.dueChars();
@@ -227,7 +297,7 @@
   function openList(title, openedFrom) {
     listOpenedFrom = openedFrom;
     $("list-title").textContent = title;
-    buildFilterRows(); buildSortOptions(); buildReviewOrder();
+    buildFilterRows(); buildSortOptions(); buildReviewOrder(); setupNewSlider();
     Array.prototype.forEach.call($("filter-rows").querySelectorAll("select"), function (s) { s.value = ""; });
     $("filter-match").textContent = "";
     $("list-search").value = "";
@@ -255,15 +325,12 @@
 
   function startListSession() {
     var chars = selectedListChars();
-    if (!chars.length) return;
-    var built = buildSessionFromChars(chars, reviewOrder());   // session presentation order (A)
-    runSession({ learnItems: built.learnItems, reviewChars: built.reviewChars, modeLabel: "Review", returnScreen: "screen-list" });
-  }
-  function startSeq() {
-    var n = parseInt($("seq-slider").value, 10) || 1;
-    var chars = Store.nextNewChars(n);
-    if (!chars.length) return;
-    runSession({ learnItems: chars.map(function (c) { return { char: c, step: 1 }; }), reviewChars: [], modeLabel: "Learn", returnScreen: "screen-learn-seq" });
+    // C: mix in N brand-new characters (next in study order), excluding any already chosen.
+    var extra = Store.nextNewChars(newSliderVal()).filter(function (c) { return chars.indexOf(c) < 0; });
+    var all = chars.concat(extra);
+    if (!all.length) return;
+    var built = buildSessionFromChars(all, reviewOrder());   // session presentation order (A)
+    runSession({ learnItems: built.learnItems, reviewChars: built.reviewChars, modeLabel: "Study", returnScreen: "screen-list" });
   }
   function startDueReview(returnScreen, order) {
     var due = Scheduler.dueChars();
@@ -353,59 +420,37 @@
     present();
   }
 
+  // Return to a screen, refreshing the list (B) so statuses are current.
+  function returnToScreen(id) {
+    renderHome();
+    if (id === "screen-list") { renderListDue(); buildListGrid(); }
+    show(id || "screen-home");
+  }
+
+  // A: results screen — Newly Learned (blue), Reviewed score, Missed (red).
   function finishSession(cfg, summary) {
-    if (summary.reviewed.length) {
-      var correct = summary.reviewed.length - summary.failed.length;
-      var extra = summary.graduated.length ? ("Newly learned: " + summary.graduated.join(" ")) : "";
-      showDone("Review complete", correct + " / " + summary.reviewed.length + " kanji correct", extra, cfg.returnScreen, summary.failed);
-    } else {
-      var grad = Store.reviewPool();
-      showDone("Learn session complete",
-        summary.graduated.length + " character" + (summary.graduated.length === 1 ? "" : "s") + " learned",
-        grad.length ? ("In your review pool: " + grad.join(" ")) : "", cfg.returnScreen, []);
-    }
+    var learned = summary.graduated;
+    var reviewedTotal = summary.reviewed.length;
+    var reviewedCorrect = reviewedTotal - summary.failed.length;
+
+    $("done-learned-row").hidden = !learned.length;
+    $("done-learned").textContent = learned.join(" ");
+    $("done-reviewed-row").hidden = !reviewedTotal;
+    $("done-reviewed").textContent = reviewedCorrect + " / " + reviewedTotal + " correct";
+    $("done-missed-row").hidden = !summary.failed.length;
+    $("done-missed").textContent = summary.failed.join(" ");
+
+    $("done-back").onclick = function () { returnToScreen(cfg.returnScreen); };
+    renderHome();
+    show("screen-done");
   }
 
   function exitSession() {
     if (activeSession) activeSession.aborted = true;
     DrawScreen.stop();
+    var rs = activeReturnScreen;
     activeSession = null;
-    renderHome();
-    show(activeReturnScreen || "screen-home");
-  }
-
-  function showDone(title, summaryText, extraNote, backScreenId, failed) {
-    $("done-title").textContent = title;
-    $("done-summary").textContent = summaryText;
-    var f = $("done-failed");
-    f.innerHTML = "";
-    if (failed && failed.length) {
-      f.innerHTML = '<span class="done-failed-label">Missed:</span> ' +
-        failed.map(function (c) { return '<span class="done-failed-kanji">' + c + "</span>"; }).join(" ");
-    }
-    $("done-extra").textContent = extraNote || "";
-    $("done-back").onclick = function () { renderHome(); show(backScreenId || "screen-home"); };
-    renderHome();
-    show("screen-done");
-  }
-
-  // ================= LEARN entry + sequential =================
-  function openSeq() {
-    var avail = Store.nextNewChars(999);
-    $("seq-available").textContent = avail.length;
-    var slider = $("seq-slider");
-    slider.max = String(Math.max(1, Math.min(50, avail.length)));
-    if (parseInt(slider.value, 10) > parseInt(slider.max, 10)) slider.value = slider.max;
-    updateSeq();
-    slider.oninput = updateSeq;
-    $("seq-start").disabled = avail.length === 0;
-    show("screen-learn-seq");
-  }
-  function updateSeq() {
-    var n = parseInt($("seq-slider").value, 10);
-    $("seq-value").textContent = n;
-    var avail = Store.nextNewChars(999);
-    $("seq-preview").textContent = avail.length ? ("Next up: " + Store.nextNewChars(n).join(" ")) : "Nothing new to learn right now.";
+    returnToScreen(rs || "screen-home");
   }
 
   // ================= wiring =================
@@ -419,12 +464,11 @@
       target: $("draw-target"), cueSettings: $("cue-settings"), cueContent: $("cue-content"),
       prompt: $("draw-prompt"), status: $("draw-status"),
       modeLabel: $("draw-mode"), stepLabel: $("draw-step"), progressLabel: $("draw-progress"),
-      reveal: $("draw-reveal"), skip: $("draw-skip"), back: $("draw-back"),
+      reveal: $("draw-reveal"), skip: $("draw-skip"), back: $("draw-back"), prior: $("draw-prior"),
     }, { onBack: exitSession });
 
-    $("nav-browse").addEventListener("click", function () { buildBrowsePicker(); browseSelect(META[0].char); show("screen-browse"); });
-    $("nav-learn").addEventListener("click", function () { show("screen-learn-entry"); });
-    $("nav-review").addEventListener("click", function () { openList("Review", "screen-home"); });
+    $("nav-browse").addEventListener("click", openBrowse);
+    $("nav-study").addEventListener("click", function () { openList("Study", "screen-home"); });
     $("nav-settings").addEventListener("click", function () { show("screen-settings"); });
     $("home-due").addEventListener("click", function () { startDueReview("screen-home", Filters.DEFAULT_SORT); });
 
@@ -433,7 +477,7 @@
       b.addEventListener("click", function () {
         var target = b.getAttribute("data-back");
         if (target === "auto") target = listOpenedFrom;
-        renderHome(); show(target || "screen-home");
+        returnToScreen(target || "screen-home");
       });
     });
 
@@ -444,20 +488,15 @@
     });
 
     $("browse-animate").addEventListener("click", function () { if (browseWriter) browseWriter.animateCharacter(); });
-    $("browse-reset").addEventListener("click", function () { if (browseChar) browseSelect(browseChar); });
-    $("browse-random").addEventListener("click", browseRandom);
-
-    $("learn-seq-btn").addEventListener("click", openSeq);
-    $("learn-choose-btn").addEventListener("click", function () { openList("Choose to learn", "screen-learn-entry"); });
-    $("seq-start").addEventListener("click", startSeq);
+    $("browse-search").addEventListener("input", browseSearch);
+    $("browse-search-draw").addEventListener("click", drawSearchNotice);
 
     $("filter-apply").addEventListener("click", applyFilters);
     $("filter-reset").addEventListener("click", resetFilters);
     $("list-sort").addEventListener("change", applySort);
     $("list-search").addEventListener("input", applySearch);
-    $("search-draw").addEventListener("click", function () {
-      alert("Draw-to-search is coming soon. For now, search by typing the kanji, a reading in romaji (e.g. \"sui\"), or an English meaning.");
-    });
+    $("search-draw").addEventListener("click", drawSearchNotice);
+    $("new-slider").addEventListener("input", updateNewSlider);
     $("list-all").addEventListener("click", function () { listVisible.forEach(function (c) { listSelected[c] = true; }); buildListGrid(); });
     $("list-clear").addEventListener("click", function () { listSelected = {}; buildListGrid(); });
     $("list-start").addEventListener("click", startListSession);
