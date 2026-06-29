@@ -356,8 +356,21 @@ html, body {
   position: sticky; top: 0; z-index: 1;
 }
 .section-header:hover { background: #e2e8f1; }
+.section-header-static, .section-header-static:hover { cursor: default; background: #eef1f5; }
 .section-header:first-child { margin-top: 0; }
+.section-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* B: arrow sits just left of the count on the right side of the banner. */
+.section-right { display: flex; align-items: center; gap: 0.45rem; flex: 0 0 auto; }
+.section-arrow {
+  border: none; background: transparent; cursor: pointer; color: var(--muted);
+  font-size: 0.8rem; line-height: 1; padding: 0 0.15rem; border-radius: 4px;
+}
+.section-arrow:hover { color: var(--ink); background: rgba(0,0,0,0.06); }
 .section-count { color: var(--muted); font-weight: 600; font-size: 0.78rem; }
+.section-collapsed { display: none !important; }
+/* C: collapse/expand-all bar (Browse). */
+.list-bar { display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0 0.6rem; }
+.status-grid .select-chip {
 .status-grid .select-chip {
   aspect-ratio: auto; display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 0.5rem 0.25rem 0.45rem;

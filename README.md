@@ -31,9 +31,17 @@ mixing new and due characters behaves consistently.
   match the active order — JLPT level (Study order), grade, 2-stroke bands, 100-rank
   frequency bands, overdue/next-due day-ranges, or lapse percentiles. Kanji that
   don't fit the active order (e.g. jinmeiyō under JLPT) collect in an **"Outside
-  current order"** bucket — nothing is ever hidden. **Tapping a section header**
-  selects every kanji in that section that's currently visible (i.e. that also
-  passes the active filters).
+  current order"** bucket — nothing is ever hidden. An **"Ungrouped (plain list)"**
+  order shows everything as one continuous list with no headers.
+  - **Tapping a section header toggles selection** of every kanji in that section
+    that's currently visible (tap again to clear just that section — other sections
+    are untouched).
+  - Each header has a **collapse/expand arrow** (just left of the count), and a
+    **Collapse all / Expand all** button sits with Select-all / Clear. Headers stay
+    sticky as you scroll.
+  - The **Group** filter's blocks now follow the **active display order** (so under
+    Study order/JLPT, "block 1 of 50" is the first 50 N5 kanji; under Grade, the
+    first 50 by grade; etc.).
 - **Always-on review tracking**: a **tappable** banner shows which characters are
   **due for review** (independent of any filters) — tap it to review exactly those.
 - Each character shows its **status** (New / Learning / Due / Learned) in a
@@ -52,9 +60,9 @@ mixing new and due characters behaves consistently.
     visually/structurally similar characters.
   - **Group** — an iOS-style **scroll-picker**: one wheel for block size (50/100/200)
     and one to scroll between blocks.
-- **Sort**: study order (JLPT), **grade level**, frequency, fewest strokes, **most
-  overdue**, **next due (soonest upcoming)**, **most failed** — or **Randomize**
-  (review order).
+- **Sort**: study order (JLPT), **ungrouped (plain list)**, **grade level**,
+  frequency, fewest strokes, **most overdue**, **next due (soonest upcoming)**,
+  **most failed** — or **Randomize** (review order).
 - Starting a session handles each character by its status: new ones get the
   scaffolding, known ones get reviewed — mixed together.
 
@@ -64,7 +72,10 @@ mixing new and due characters behaves consistently.
   (e.g. 手 → 扌), and the complete vocabulary list (grouped by reading) with **audio** (🔊).
 - The **same display-order, filter and grouped-section system as the Study list**
   (status, difficulty, JLPT/grade, lapses/leeches, similar-to, group, …) narrows and
-  organises the Browse picker; section headers here are visual labels.
+  organises the Browse picker; section headers here are visual labels, each with a
+  collapse arrow plus a **Collapse all / Expand all** button above the list.
+- The **kanji display + info panel sit at the top**, with the order/filter/search
+  controls and the kanji picker below.
 
 ### ⚙️ Settings
 - **Reset progress** lives here now, behind **two confirmations**.

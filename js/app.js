@@ -119,16 +119,17 @@
   // C: Browse picker rendered as labelled sections matching the active order
   // (same grouping as the Study list; headers here are visual, not selectable).
   var browseVisible = [];
+  var browseAllCollapsed = false;
   function currentBrowseSort() { return $("browse-sort").value || "study"; }
   function buildBrowsePicker(chars) {
     if (chars) browseVisible = chars;
     var picker = $("browse-picker"); picker.innerHTML = "";
     var secs = Filters.sections(browseVisible, currentBrowseSort());
     secs.forEach(function (sec) {
+      var header = null;
       if (sec.label) {
-        var h = document.createElement("div"); h.className = "section-header section-header-static";
-        h.innerHTML = "<span>" + sec.label + "</span><span class='section-count'>" + sec.chars.length + "</span>";
-        picker.appendChild(h);
+        header = makeSectionHeader(sec.label, sec.chars.length, null);   // Browse: visual header, collapsible only
+        picker.appendChild(header);
       }
       var wrap = document.createElement("div"); wrap.className = "section-chips browse-section-chips";
       sec.chars.forEach(function (ch) {
@@ -139,10 +140,12 @@
         wrap.appendChild(chip);
       });
       picker.appendChild(wrap);
+      if (header && browseAllCollapsed) setSectionCollapsed(header, true);
     });
   }
   // Recompute the Browse picker from the current search + filters + sort.
   function refreshBrowse(base) {
+    if (browseFilterValues.group) browseFilterValues.group.sort = currentBrowseSort();   // E: chunk by active order
     var active = activeFilters(browseFilterValues);
     var chars = base || (active.length ? Filters.apply(active) : allChars());
     browseVisible = Filters.sortChars(chars, currentBrowseSort());
@@ -214,6 +217,7 @@
     buildBrowseSortOptions();
     buildFilterRows($("browse-filter-rows"), browseFilterValues);
     $("browse-filter-match").textContent = "";
+    browseAllCollapsed = false; $("browse-collapse-all").textContent = "Collapse all";
     refreshBrowse(allChars());
     browseSelect(META[0].char);
     show("screen-browse");
@@ -262,31 +266,64 @@
     });
     return chip;
   }
+  // B: collapse/expand a single section (the chips immediately after its header).
+  // Keeps the header in place so its sticky behaviour is unchanged.
+  function setSectionCollapsed(headerEl, collapsed) {
+    headerEl.classList.toggle("collapsed", collapsed);
+    var arrow = headerEl.querySelector(".section-arrow");
+    if (arrow) arrow.textContent = collapsed ? "▸" : "▾";
+    var chips = headerEl.nextElementSibling;
+    if (chips && chips.classList.contains("section-chips")) chips.classList.toggle("section-collapsed", collapsed);
+  }
+  // Build a section header: label on the left; arrow + count on the right (arrow
+  // just left of the count). `onSelect` (Study only) makes the header itself a
+  // select toggle; the arrow always collapses/expands and never triggers select.
+  function makeSectionHeader(label, count, onSelect) {
+    var h = document.createElement("div");
+    h.className = "section-header" + (onSelect ? "" : " section-header-static");
+    var lab = document.createElement("span"); lab.className = "section-label"; lab.textContent = label;
+    var right = document.createElement("span"); right.className = "section-right";
+    var arrow = document.createElement("button"); arrow.type = "button"; arrow.className = "section-arrow";
+    arrow.setAttribute("aria-label", "Collapse or expand section"); arrow.textContent = "▾";
+    var cnt = document.createElement("span"); cnt.className = "section-count"; cnt.textContent = count;
+    right.appendChild(arrow); right.appendChild(cnt);
+    h.appendChild(lab); h.appendChild(right);
+    arrow.addEventListener("click", function (e) {
+      e.stopPropagation();
+      setSectionCollapsed(h, !h.classList.contains("collapsed"));
+    });
+    if (onSelect) { h.setAttribute("role", "button"); h.tabIndex = 0; h.title = "Select / clear this section"; h.addEventListener("click", onSelect); }
+    return h;
+  }
+
   // A: render the visible list as labelled sections matching the active order.
-  // Clicking a header selects every kanji in that section that is currently
-  // visible (i.e. that also passes the active filters/search).
+  // Clicking a header toggles selection of every kanji in that section that's
+  // currently visible (select all → on second click, clear just that section).
+  var listAllCollapsed = false;
   function buildListGrid() {
     var grid = $("list-grid"); grid.innerHTML = "";
     var secs = Filters.sections(listVisible, currentSort());
     secs.forEach(function (sec) {
       var chipEls = [];
+      var header = null;
       if (sec.label) {
-        var h = document.createElement("button");
-        h.type = "button"; h.className = "section-header";
-        h.innerHTML = "<span>" + sec.label + "</span><span class='section-count'>" + sec.chars.length + "</span>";
-        h.title = "Select all in “" + sec.label + "”";
-        h.addEventListener("click", function () {
-          sec.chars.forEach(function (c) { listSelected[c] = true; });
-          chipEls.forEach(function (e) { e.classList.add("selected"); });
+        header = makeSectionHeader(sec.label, sec.chars.length, function () {
+          var allSel = sec.chars.every(function (c) { return listSelected[c]; });
+          sec.chars.forEach(function (c) { listSelected[c] = !allSel; });
+          chipEls.forEach(function (e) { e.classList.toggle("selected", !allSel); });
           updateListStart();
         });
-        grid.appendChild(h);
+        grid.appendChild(header);
       }
       var wrap = document.createElement("div"); wrap.className = "section-chips";
       sec.chars.forEach(function (ch) { var chip = makeSelectChip(ch); chipEls.push(chip); wrap.appendChild(chip); });
       grid.appendChild(wrap);
+      if (header && listAllCollapsed) setSectionCollapsed(header, true);
     });
     updateListStart();
+  }
+  function setAllSectionsCollapsed(gridId, collapsed) {
+    Array.prototype.forEach.call($(gridId).querySelectorAll(".section-header"), function (h) { setSectionCollapsed(h, collapsed); });
   }
   function selectedListChars() { return allChars().filter(function (c) { return listSelected[c]; }); }
   function newSliderVal() { var s = $("new-slider"); return s ? (parseInt(s.value, 10) || 0) : 0; }
@@ -387,6 +424,7 @@
   }
   // C3: filters narrow the visible list (not just highlight).
   function applyFilters() {
+    if (listFilterValues.group) listFilterValues.group.sort = currentSort();   // E: chunk by active order
     var active = activeFilters(listFilterValues);
     var matched = active.length ? Filters.apply(active) : allChars();
     listVisible = Filters.sortChars(matched, currentSort());
@@ -456,7 +494,7 @@
   // Review order (during the session) — single-select radios incl Random (default).
   function buildReviewOrder() {
     var wrap = $("review-order-options"); wrap.innerHTML = "";
-    Object.keys(Filters.SORTS).forEach(function (id) {
+    Object.keys(Filters.SORTS).filter(function (id) { return id !== "ungrouped"; }).forEach(function (id) {
       var lab = document.createElement("label"); lab.className = "ro-opt";
       var inp = document.createElement("input"); inp.type = "radio"; inp.name = "review-order"; inp.value = id;
       if (id === Filters.DEFAULT_SORT) inp.checked = true;
@@ -520,6 +558,7 @@
     $("filter-match").textContent = "";
     $("list-search").value = "";
     listSelected = {};
+    listAllCollapsed = false; $("list-collapse-all").textContent = "Collapse all";
     listVisible = Filters.sortChars(allChars(), "study");
     renderListDue(); buildListGrid();
     show("screen-list");
@@ -714,6 +753,11 @@
     $("browse-sort").addEventListener("change", function () { buildBrowsePicker(browseVisible); });
     $("browse-filter-apply").addEventListener("click", applyBrowseFilters);
     $("browse-filter-reset").addEventListener("click", resetBrowseFilters);
+    $("browse-collapse-all").addEventListener("click", function () {
+      browseAllCollapsed = !browseAllCollapsed;
+      setAllSectionsCollapsed("browse-picker", browseAllCollapsed);
+      $("browse-collapse-all").textContent = browseAllCollapsed ? "Expand all" : "Collapse all";
+    });
 
     $("filter-apply").addEventListener("click", applyFilters);
     $("filter-reset").addEventListener("click", resetFilters);
@@ -722,6 +766,11 @@
     $("new-slider").addEventListener("input", updateNewSlider);
     $("list-all").addEventListener("click", function () { listVisible.forEach(function (c) { listSelected[c] = true; }); buildListGrid(); });
     $("list-clear").addEventListener("click", function () { listSelected = {}; buildListGrid(); });
+    $("list-collapse-all").addEventListener("click", function () {
+      listAllCollapsed = !listAllCollapsed;
+      setAllSectionsCollapsed("list-grid", listAllCollapsed);
+      $("list-collapse-all").textContent = listAllCollapsed ? "Expand all" : "Collapse all";
+    });
     $("list-start").addEventListener("click", startListSession);
     $("list-due-banner").addEventListener("click", function () { if (!$("list-due-banner").disabled) startDueReview("screen-list", reviewOrder()); });
 

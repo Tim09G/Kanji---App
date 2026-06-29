@@ -208,8 +208,10 @@ window.Filters = (function () {
       },
     },
 
-    // (E) A contiguous block of the study order, chosen via a scroll-picker
-    // (size wheel + group wheel). Value is { size, index } (0-based group index).
+    // (E) A contiguous block of the ACTIVE display order, chosen via a scroll-picker
+    // (size wheel + group wheel). Value is { size, index, sort } where `sort` is the
+    // screen's current display order (injected at apply time) so the block follows
+    // whatever order is selected rather than a fixed one.
     group: {
       id: "group",
       label: "Group",
@@ -217,10 +219,16 @@ window.Filters = (function () {
       groupCount: function (size) { return Math.max(1, Math.ceil(allChars().length / (Number(size) || 50))); },
       predicate: function (val) {
         var size = Number(val && val.size) || 50, idx = Number(val && val.index) || 0;
-        var order = allChars();
-        var start = idx * size, end = start + size;
-        var set = {};
-        order.slice(start, end).forEach(function (c) { set[c] = true; });
+        var sortId = (val && val.sort) || "study";
+        // Chunk through the order EXACTLY as displayed: sort, then flatten the
+        // section grouping (so e.g. Study order/JLPT yields all-N5 first, not the
+        // raw grade,freq sequence that interleaves JLPT levels).
+        var flat = [];
+        sections(sortChars(allChars(), sortId), sortId).forEach(function (s) {
+          s.chars.forEach(function (c) { flat.push(c); });
+        });
+        var start = idx * size, end = start + size, set = {};
+        flat.slice(start, end).forEach(function (c) { set[c] = true; });
         return function (char) { return !!set[char]; };
       },
     },
@@ -238,6 +246,8 @@ window.Filters = (function () {
   var SORTS = {
     random: { label: "Random", random: true },
     study: { label: "Study order (JLPT)", cmp: null },
+    // (D) Same underlying order as study, but the UI renders no section headers.
+    ungrouped: { label: "Ungrouped (plain list)", cmp: null },
     grade: { label: "Grade level", cmp: function (a, b) {
       var ga = meta(a).grade == null ? 99 : meta(a).grade, gb = meta(b).grade == null ? 99 : meta(b).grade;
       return ga - gb || (meta(a).freq - meta(b).freq);

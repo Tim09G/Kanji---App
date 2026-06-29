@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=14" />
+  <link rel="stylesheet" href="css/styles.css?v=16" />
 </head>
 <body>
   <header class="app-header">
@@ -56,26 +56,8 @@
         <button class="btn btn-ghost" data-home type="button">← Home</button>
         <h2>Browse</h2>
       </div>
-      <div class="search-row">
-        <input id="browse-search" type="search" placeholder="Search kanji, reading (romaji) or meaning…" />
-      </div>
 
-      <!-- C: same display-order + filter system as the Study list. -->
-      <div class="order-bar">
-        <label for="browse-sort"><strong>Display order</strong></label>
-        <select id="browse-sort" class="select-input"></select>
-      </div>
-      <details class="filter-box" id="browse-filter-box">
-        <summary>Filters <span class="filter-hint">(combine with AND)</span></summary>
-        <div id="browse-filter-rows" class="filter-rows"></div>
-        <div class="filter-actions">
-          <button id="browse-filter-apply" class="btn btn-primary" type="button">Apply filters</button>
-          <button id="browse-filter-reset" class="btn btn-ghost" type="button">Reset filters</button>
-          <span id="browse-filter-match" class="count"></span>
-        </div>
-      </details>
-
-      <nav class="kanji-picker" id="browse-picker"></nav>
+      <!-- G: kanji display box + info panel at the very top. -->
       <div class="study-area">
         <div class="writer-column">
           <div id="browse-target" class="writer-target"></div>
@@ -103,6 +85,33 @@
           </div>
         </aside>
       </div>
+
+      <!-- C: same display-order + filter system as the Study list. -->
+      <div class="order-bar">
+        <label for="browse-sort"><strong>Display order</strong></label>
+        <select id="browse-sort" class="select-input"></select>
+      </div>
+      <details class="filter-box" id="browse-filter-box">
+        <summary>Filters <span class="filter-hint">(combine with AND)</span></summary>
+        <div id="browse-filter-rows" class="filter-rows"></div>
+        <div class="filter-actions">
+          <button id="browse-filter-apply" class="btn btn-primary" type="button">Apply filters</button>
+          <button id="browse-filter-reset" class="btn btn-ghost" type="button">Reset filters</button>
+          <span id="browse-filter-match" class="count"></span>
+        </div>
+      </details>
+
+      <!-- G: search below the filters. -->
+      <div class="search-row">
+        <input id="browse-search" type="search" placeholder="Search kanji, reading (romaji) or meaning…" />
+      </div>
+
+      <!-- C: collapse/expand all (Browse has no Select-All row to anchor to). -->
+      <div class="list-bar">
+        <button id="browse-collapse-all" class="btn btn-ghost" type="button">Collapse all</button>
+      </div>
+
+      <nav class="kanji-picker" id="browse-picker"></nav>
     </section>
 
     <!-- ============ SHARED LIST (Study: review + new) ============ -->
@@ -113,11 +122,6 @@
       </div>
 
       <button id="list-due-banner" class="due-banner due-banner-btn" type="button"></button>
-
-      <!-- Search (D): find a kanji by character, reading or meaning. -->
-      <div class="search-row">
-        <input id="list-search" type="search" placeholder="Search kanji, reading (romaji) or meaning…" />
-      </div>
 
       <!-- Display order (select-screen only); Random not offered here (A). -->
       <div class="order-bar">
@@ -135,28 +139,32 @@
         </div>
       </details>
 
-      <p class="hint">Tap characters to include them, or use search/filters above.</p>
-      <div class="select-toolbar">
-        <button id="list-all" class="btn btn-ghost" type="button">Select all</button>
-        <button id="list-clear" class="btn btn-ghost" type="button">Clear</button>
-        <span class="spacer"></span>
-        <span id="list-count" class="count">0 selected</span>
+      <!-- F: search now sits below the filters. -->
+      <div class="search-row">
+        <input id="list-search" type="search" placeholder="Search kanji, reading (romaji) or meaning…" />
       </div>
-      <div id="list-grid" class="select-grid status-grid"></div>
 
-      <!-- Review order (A): order characters are presented in during the session.
-           Single-select; Random is the default. Distinct from display order above. -->
-      <fieldset class="review-order">
-        <legend>Review order (during the session)</legend>
-        <div id="review-order-options" class="ro-options"></div>
-      </fieldset>
-
-      <!-- New kanji to mix in (C): 0 = pure review of the selection. -->
+      <!-- F: New-kanji slider + Review order moved above the list and button row. -->
       <div class="slider-row">
         <label for="new-slider">New kanji to add: <output id="new-value" class="slider-value">0</output></label>
         <input type="range" id="new-slider" min="0" max="50" value="0" />
         <span id="new-preview" class="hint"></span>
       </div>
+
+      <fieldset class="review-order">
+        <legend>Review order (during the session)</legend>
+        <div id="review-order-options" class="ro-options"></div>
+      </fieldset>
+
+      <p class="hint">Tap characters to include them, or use search/filters above.</p>
+      <div class="select-toolbar">
+        <button id="list-all" class="btn btn-ghost" type="button">Select all</button>
+        <button id="list-clear" class="btn btn-ghost" type="button">Clear</button>
+        <button id="list-collapse-all" class="btn btn-ghost" type="button">Collapse all</button>
+        <span class="spacer"></span>
+        <span id="list-count" class="count">0 selected</span>
+      </div>
+      <div id="list-grid" class="select-grid status-grid"></div>
 
       <div class="screen-actions">
         <button id="list-start" class="btn btn-primary" type="button" disabled>Start →</button>
@@ -225,16 +233,16 @@
 
   <script src="vendor/hanzi-writer.min.js"></script>
   <script src="vendor/ts-fsrs.umd.js"></script>
-  <script src="data/kanji-meta.js?v=14"></script>
-  <script src="data/kanji-gen-1.js?v=14"></script>
-  <script src="data/kanji-gen-2.js?v=14"></script>
-  <script src="data/kanji-gen-3.js?v=14"></script>
-  <script src="data/kanji-gen-4.js?v=14"></script>
-  <script src="data/kanji-components.js?v=14"></script>
-  <script src="js/store.js?v=14"></script>
-  <script src="js/scheduler.js?v=14"></script>
-  <script src="js/filters.js?v=14"></script>
-  <script src="js/drawscreen.js?v=14"></script>
-  <script src="js/app.js?v=14"></script>
+  <script src="data/kanji-meta.js?v=16"></script>
+  <script src="data/kanji-gen-1.js?v=16"></script>
+  <script src="data/kanji-gen-2.js?v=16"></script>
+  <script src="data/kanji-gen-3.js?v=16"></script>
+  <script src="data/kanji-gen-4.js?v=16"></script>
+  <script src="data/kanji-components.js?v=16"></script>
+  <script src="js/store.js?v=16"></script>
+  <script src="js/scheduler.js?v=16"></script>
+  <script src="js/filters.js?v=16"></script>
+  <script src="js/drawscreen.js?v=16"></script>
+  <script src="js/app.js?v=16"></script>
 </body>
 </html>
