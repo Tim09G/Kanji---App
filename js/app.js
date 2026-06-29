@@ -116,19 +116,43 @@
 
   // ================= BROWSE =================
   var browseWriter = null, browseChar = null;
+  // C: Browse picker rendered as labelled sections matching the active order
+  // (same grouping as the Study list; headers here are visual, not selectable).
+  var browseVisible = [];
+  function currentBrowseSort() { return $("browse-sort").value || "study"; }
   function buildBrowsePicker(chars) {
+    if (chars) browseVisible = chars;
     var picker = $("browse-picker"); picker.innerHTML = "";
-    (chars || allChars()).forEach(function (ch) {
-      var chip = document.createElement("button");
-      chip.type = "button"; chip.className = "kanji-chip"; chip.textContent = ch; chip.dataset.char = ch;
-      chip.addEventListener("click", function () { browseSelect(ch); });
-      picker.appendChild(chip);
+    var secs = Filters.sections(browseVisible, currentBrowseSort());
+    secs.forEach(function (sec) {
+      if (sec.label) {
+        var h = document.createElement("div"); h.className = "section-header section-header-static";
+        h.innerHTML = "<span>" + sec.label + "</span><span class='section-count'>" + sec.chars.length + "</span>";
+        picker.appendChild(h);
+      }
+      var wrap = document.createElement("div"); wrap.className = "section-chips browse-section-chips";
+      sec.chars.forEach(function (ch) {
+        var chip = document.createElement("button");
+        chip.type = "button"; chip.className = "kanji-chip"; chip.textContent = ch; chip.dataset.char = ch;
+        if (ch === browseChar) chip.classList.add("active");
+        chip.addEventListener("click", function () { browseSelect(ch); });
+        wrap.appendChild(chip);
+      });
+      picker.appendChild(wrap);
     });
+  }
+  // Recompute the Browse picker from the current search + filters + sort.
+  function refreshBrowse(base) {
+    var active = activeFilters(browseFilterValues);
+    var chars = base || (active.length ? Filters.apply(active) : allChars());
+    browseVisible = Filters.sortChars(chars, currentBrowseSort());
+    buildBrowsePicker(browseVisible);
+    $("browse-filter-match").textContent = active.length ? (browseVisible.length + " shown") : "";
   }
   function browseSelect(char) {
     browseChar = char;
     var meta = metaOf(char);
-    Array.prototype.forEach.call($("browse-picker").children, function (chip) { chip.classList.toggle("active", chip.dataset.char === char); });
+    Array.prototype.forEach.call($("browse-picker").querySelectorAll(".kanji-chip"), function (chip) { chip.classList.toggle("active", chip.dataset.char === char); });
     $("browse-char").textContent = char;
     var bm = $("browse-meaning");
     bm.textContent = meta.meaning;
@@ -186,15 +210,35 @@
     });
   }
   function openBrowse() {
-    buildBrowsePicker();
     $("browse-search").value = "";
+    buildBrowseSortOptions();
+    buildFilterRows($("browse-filter-rows"), browseFilterValues);
+    $("browse-filter-match").textContent = "";
+    refreshBrowse(allChars());
     browseSelect(META[0].char);
     show("screen-browse");
   }
+  function buildBrowseSortOptions() {
+    var sel = $("browse-sort"); if (sel.options.length) return;   // build once
+    Object.keys(Filters.SORTS).filter(function (id) { return id !== "random"; })
+      .forEach(function (id) { var o = document.createElement("option"); o.value = id; o.textContent = Filters.SORTS[id].label; sel.appendChild(o); });
+    sel.value = "study";
+  }
   function browseSearch() {
-    var matches = searchChars($("browse-search").value);
-    buildBrowsePicker(matches);
-    if (matches.length) browseSelect(matches[0]);
+    var q = $("browse-search").value;
+    var matches = q.trim() ? searchChars(q) : (activeFilters(browseFilterValues).length ? Filters.apply(activeFilters(browseFilterValues)) : allChars());
+    refreshBrowse(matches);
+    if (browseVisible.length) browseSelect(browseVisible[0]);
+  }
+  function applyBrowseFilters() {
+    var q = $("browse-search").value;
+    refreshBrowse(q.trim() ? searchChars(q) : null);
+    if (browseVisible.length) browseSelect(browseVisible[0]);
+  }
+  function resetBrowseFilters() {
+    buildFilterRows($("browse-filter-rows"), browseFilterValues);
+    $("browse-search").value = "";
+    refreshBrowse(allChars());
   }
 
   // ================= SHARED LIST =================
@@ -203,22 +247,44 @@
 
   function currentSort() { return $("list-sort").value || Filters.DEFAULT_SORT; }
 
+  function makeSelectChip(ch) {
+    var info = statusInfo(ch);
+    var chip = document.createElement("button");
+    chip.type = "button"; chip.className = "select-chip"; chip.dataset.char = ch;
+    if (listSelected[ch]) chip.classList.add("selected");
+    var glyph = document.createElement("span"); glyph.className = "chip-glyph"; glyph.textContent = ch;
+    var tag = document.createElement("span"); tag.className = "chip-tag chip-" + info.key; tag.textContent = info.label;
+    chip.appendChild(glyph); chip.appendChild(tag);
+    chip.addEventListener("click", function () {
+      listSelected[ch] = !listSelected[ch];
+      chip.classList.toggle("selected", listSelected[ch]);
+      updateListStart();
+    });
+    return chip;
+  }
+  // A: render the visible list as labelled sections matching the active order.
+  // Clicking a header selects every kanji in that section that is currently
+  // visible (i.e. that also passes the active filters/search).
   function buildListGrid() {
     var grid = $("list-grid"); grid.innerHTML = "";
-    listVisible.forEach(function (ch) {
-      var info = statusInfo(ch);
-      var chip = document.createElement("button");
-      chip.type = "button"; chip.className = "select-chip"; chip.dataset.char = ch;
-      if (listSelected[ch]) chip.classList.add("selected");
-      var glyph = document.createElement("span"); glyph.className = "chip-glyph"; glyph.textContent = ch;
-      var tag = document.createElement("span"); tag.className = "chip-tag chip-" + info.key; tag.textContent = info.label;
-      chip.appendChild(glyph); chip.appendChild(tag);
-      chip.addEventListener("click", function () {
-        listSelected[ch] = !listSelected[ch];
-        chip.classList.toggle("selected", listSelected[ch]);
-        updateListStart();
-      });
-      grid.appendChild(chip);
+    var secs = Filters.sections(listVisible, currentSort());
+    secs.forEach(function (sec) {
+      var chipEls = [];
+      if (sec.label) {
+        var h = document.createElement("button");
+        h.type = "button"; h.className = "section-header";
+        h.innerHTML = "<span>" + sec.label + "</span><span class='section-count'>" + sec.chars.length + "</span>";
+        h.title = "Select all in “" + sec.label + "”";
+        h.addEventListener("click", function () {
+          sec.chars.forEach(function (c) { listSelected[c] = true; });
+          chipEls.forEach(function (e) { e.classList.add("selected"); });
+          updateListStart();
+        });
+        grid.appendChild(h);
+      }
+      var wrap = document.createElement("div"); wrap.className = "section-chips";
+      sec.chars.forEach(function (ch) { var chip = makeSelectChip(ch); chipEls.push(chip); wrap.appendChild(chip); });
+      grid.appendChild(wrap);
     });
     updateListStart();
   }
@@ -230,34 +296,36 @@
     $("list-start").disabled = (n === 0 && newSliderVal() === 0);
   }
 
-  // Filter values are tracked here (decoupled from input type) so selects, the
+  // Filter values are tracked per screen (decoupled from input type) so selects, the
   // kanji text input (A) and the group scroll-picker (E) all read out uniformly.
-  var filterValues = {};
+  // The same builders serve both the Study list and the Browse tab (C).
+  var listFilterValues = {};
+  var browseFilterValues = {};
 
-  function buildFilterRows() {
-    var wrap = $("filter-rows"); wrap.innerHTML = "";
-    filterValues = {};
+  function buildFilterRows(wrapEl, values) {
+    wrapEl.innerHTML = "";
+    Object.keys(values).forEach(function (k) { delete values[k]; });
     Object.keys(Filters.DEFS).forEach(function (id) {
       var def = Filters.DEFS[id];
       var row = document.createElement("div"); row.className = "filter-row";
       var lab = document.createElement("label"); lab.className = "filter-label"; lab.textContent = def.label;
       row.appendChild(lab);
-      if (def.ui === "kanji") buildKanjiFilterRow(row, def);
-      else if (def.ui === "group") buildGroupFilterRow(row, def);
-      else buildSelectFilterRow(row, def);
-      wrap.appendChild(row);
+      if (def.ui === "kanji") buildKanjiFilterRow(row, def, values);
+      else if (def.ui === "group") buildGroupFilterRow(row, def, values);
+      else buildSelectFilterRow(row, def, values);
+      wrapEl.appendChild(row);
     });
   }
 
-  function buildSelectFilterRow(row, def) {
+  function buildSelectFilterRow(row, def, values) {
     var sel = document.createElement("select"); sel.className = "select-input"; sel.dataset.filter = def.id;
     var any = document.createElement("option"); any.value = ""; any.textContent = "— any —"; sel.appendChild(any);
     var opts = def.options();
     opts.forEach(function (o) { var opt = document.createElement("option"); opt.value = o.value; opt.textContent = o.label; sel.appendChild(opt); });
     var hint = document.createElement("small"); hint.className = "filter-opt-hint";
     sel.addEventListener("change", function () {
-      if (sel.value === "") { delete filterValues[def.id]; hint.textContent = ""; return; }
-      filterValues[def.id] = sel.value;
+      if (sel.value === "") { delete values[def.id]; hint.textContent = ""; return; }
+      values[def.id] = sel.value;
       var o = opts.filter(function (x) { return String(x.value) === sel.value; })[0];
       hint.textContent = (o && o.hint) || "";
     });
@@ -265,15 +333,15 @@
   }
 
   // A: type/enter any kanji; filter to it + its similar list.
-  function buildKanjiFilterRow(row, def) {
+  function buildKanjiFilterRow(row, def, values) {
     var inp = document.createElement("input"); inp.type = "text"; inp.className = "select-input kanji-filter-input";
     inp.maxLength = 2; inp.placeholder = "Type a kanji, e.g. 校"; inp.dataset.filter = def.id;
     var hint = document.createElement("small"); hint.className = "filter-opt-hint";
     inp.addEventListener("input", function () {
       var v = (inp.value || "").trim(), ch = null;
       for (var i = 0; i < v.length; i++) { if (/[㐀-鿿]/.test(v[i])) { ch = v[i]; break; } }
-      if (!ch || !metaOf(ch)) { delete filterValues[def.id]; hint.textContent = ch ? "Not in the set." : ""; return; }
-      filterValues[def.id] = ch;
+      if (!ch || !metaOf(ch)) { delete values[def.id]; hint.textContent = ch ? "Not in the set." : ""; return; }
+      values[def.id] = ch;
       var sim = metaOf(ch).similar || [];
       hint.textContent = sim.length ? ("similar: " + sim.join(" ")) : "no similar characters found";
     });
@@ -281,7 +349,7 @@
   }
 
   // E: iOS-style scroll-picker — a size wheel and a group wheel.
-  function buildGroupFilterRow(row, def) {
+  function buildGroupFilterRow(row, def, values) {
     row.classList.add("filter-row-wide");
     var box = document.createElement("div"); box.className = "group-filter";
     var enable = document.createElement("label"); enable.className = "group-enable";
@@ -297,7 +365,7 @@
     box.appendChild(cols); row.appendChild(box);
 
     var grpWheel = null;
-    function commit() { if (cb.checked && grpWheel) filterValues[def.id] = { size: sizeWheel.value(), index: grpWheel.index() }; }
+    function commit() { if (cb.checked && grpWheel) values[def.id] = { size: sizeWheel.value(), index: grpWheel.index() }; }
     var sizeWheel = buildWheel([50, 100, 200], function (v) { return String(v); }, function () { rebuildGroups(); commit(); });
     sizeSlot.appendChild(sizeCap); sizeSlot.appendChild(sizeWheel.el);
     grpSlot.appendChild(grpCap);
@@ -309,17 +377,17 @@
       grpSlot.appendChild(grpWheel.el);
     }
     rebuildGroups();
-    cb.addEventListener("change", function () { if (cb.checked) commit(); else delete filterValues[def.id]; });
+    cb.addEventListener("change", function () { if (cb.checked) commit(); else delete values[def.id]; });
   }
 
-  function activeFilters() {
-    return Object.keys(filterValues)
-      .filter(function (id) { var v = filterValues[id]; return v !== "" && v != null; })
-      .map(function (id) { return { id: id, value: filterValues[id] }; });
+  function activeFilters(values) {
+    return Object.keys(values)
+      .filter(function (id) { var v = values[id]; return v !== "" && v != null; })
+      .map(function (id) { return { id: id, value: values[id] }; });
   }
   // C3: filters narrow the visible list (not just highlight).
   function applyFilters() {
-    var active = activeFilters();
+    var active = activeFilters(listFilterValues);
     var matched = active.length ? Filters.apply(active) : allChars();
     listVisible = Filters.sortChars(matched, currentSort());
     listSelected = {};
@@ -328,7 +396,7 @@
     $("filter-match").textContent = active.length ? (matched.length + " shown") : "";
   }
   function resetFilters() {
-    buildFilterRows();                 // clears filterValues + resets every control
+    buildFilterRows($("filter-rows"), listFilterValues);   // clears values + resets controls
     listVisible = Filters.sortChars(allChars(), currentSort());
     listSelected = {};
     buildListGrid();
@@ -415,9 +483,6 @@
       return false;
     });
   }
-  function drawSearchNotice() {
-    alert("Draw-to-search is coming soon. For now, search by typing the kanji, a reading in romaji (e.g. \"sui\"), or an English meaning.");
-  }
   function applySearch() {
     var q = $("list-search").value;
     listVisible = Filters.sortChars(searchChars(q), currentSort());
@@ -451,7 +516,7 @@
   function openList(title, openedFrom) {
     listOpenedFrom = openedFrom;
     $("list-title").textContent = title;
-    buildFilterRows(); buildSortOptions(); buildReviewOrder(); setupNewSlider();
+    buildFilterRows($("filter-rows"), listFilterValues); buildSortOptions(); buildReviewOrder(); setupNewSlider();
     $("filter-match").textContent = "";
     $("list-search").value = "";
     listSelected = {};
@@ -646,13 +711,14 @@
 
     $("browse-animate").addEventListener("click", function () { if (browseWriter) browseWriter.animateCharacter(); });
     $("browse-search").addEventListener("input", browseSearch);
-    $("browse-search-draw").addEventListener("click", drawSearchNotice);
+    $("browse-sort").addEventListener("change", function () { buildBrowsePicker(browseVisible); });
+    $("browse-filter-apply").addEventListener("click", applyBrowseFilters);
+    $("browse-filter-reset").addEventListener("click", resetBrowseFilters);
 
     $("filter-apply").addEventListener("click", applyFilters);
     $("filter-reset").addEventListener("click", resetFilters);
     $("list-sort").addEventListener("change", applySort);
     $("list-search").addEventListener("input", applySearch);
-    $("search-draw").addEventListener("click", drawSearchNotice);
     $("new-slider").addEventListener("input", updateNewSlider);
     $("list-all").addEventListener("click", function () { listVisible.forEach(function (c) { listSelected[c] = true; }); buildListGrid(); });
     $("list-clear").addEventListener("click", function () { listSelected = {}; buildListGrid(); });

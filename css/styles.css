@@ -122,6 +122,11 @@ html, body {
   display: flex; flex-wrap: wrap; gap: 0.4rem;
   justify-content: center; margin-bottom: 1.25rem;
 }
+/* C: Browse picker — sectioned, vertically scrollable. */
+#browse-picker { display: block; max-height: 42vh; overflow-y: auto; text-align: left; padding: 2px; }
+.browse-section-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.6rem; }
+.section-header-static { cursor: default; }
+.section-header-static:hover { background: #eef1f5; }
 .kanji-chip {
   font-size: 1.4rem; width: 2.6rem; height: 2.6rem;
   border: 1px solid var(--line); background: var(--card);
@@ -337,6 +342,22 @@ html, body {
 
 /* status chips in the shared list */
 .status-grid { grid-template-columns: repeat(auto-fill, minmax(4.2rem, 1fr)); }
+/* A: sectioned display — #list-grid becomes a column of (header + chip grid). */
+#list-grid { display: block; }
+.section-chips {
+  display: grid; gap: 0.5rem; margin-bottom: 0.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(4.2rem, 1fr));
+}
+.section-header {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+  width: 100%; text-align: left; margin: 0.5rem 0 0.4rem;
+  padding: 0.4rem 0.6rem; border: none; border-radius: 8px; cursor: pointer;
+  background: #eef1f5; color: var(--ink); font-weight: 700; font-size: 0.85rem;
+  position: sticky; top: 0; z-index: 1;
+}
+.section-header:hover { background: #e2e8f1; }
+.section-header:first-child { margin-top: 0; }
+.section-count { color: var(--muted); font-weight: 600; font-size: 0.78rem; }
 .status-grid .select-chip {
   aspect-ratio: auto; display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 0.5rem 0.25rem 0.45rem;

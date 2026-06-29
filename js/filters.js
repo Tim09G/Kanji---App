@@ -237,7 +237,11 @@ window.Filters = (function () {
   // Ordering for the session. "Random" is the default.
   var SORTS = {
     random: { label: "Random", random: true },
-    study: { label: "Study order", cmp: null },
+    study: { label: "Study order (JLPT)", cmp: null },
+    grade: { label: "Grade level", cmp: function (a, b) {
+      var ga = meta(a).grade == null ? 99 : meta(a).grade, gb = meta(b).grade == null ? 99 : meta(b).grade;
+      return ga - gb || (meta(a).freq - meta(b).freq);
+    } },
     strokesAsc: { label: "Increasing stroke count", cmp: function (a, b) { return meta(a).strokeCount - meta(b).strokeCount; } },
     freqAsc: { label: "Frequency (most common first)", cmp: function (a, b) { return meta(a).freq - meta(b).freq; } },
     dueFirst: { label: "Most overdue first", cmp: function (a, b) { return Scheduler.overdueDays(b) - Scheduler.overdueDays(a); } },
@@ -252,13 +256,115 @@ window.Filters = (function () {
   };
   var DEFAULT_SORT = "random";
 
+  var _orderIdx = null;
+  function orderIndex(ch) {
+    if (!_orderIdx) { _orderIdx = {}; allChars().forEach(function (c, i) { _orderIdx[c] = i; }); }
+    return _orderIdx[ch];
+  }
   function sortChars(chars, sortId) {
     var s = SORTS[sortId] || SORTS[DEFAULT_SORT];
     if (s.random) return shuffle(chars);
-    var order = allChars();
-    var out = chars.slice().sort(function (a, b) { return order.indexOf(a) - order.indexOf(b); });
+    var out = chars.slice().sort(function (a, b) { return orderIndex(a) - orderIndex(b); });
     if (s.cmp) out.sort(s.cmp);
     return out;
+  }
+
+  // ===== Sectioned display (A) =====
+  // Given the already-sorted `chars`, partition them into labelled sections that
+  // match the active order. Returns [{ label, chars }] in header order; within each
+  // section the input order is preserved. Kanji that don't fit the active order's
+  // categories go into a generic "Outside current order" bucket, shown last.
+  var OUTSIDE = "Outside current order";
+
+  // Day-range bands reused from the "Not reviewed in" thresholds (C).
+  var DAY_BANDS = [
+    [1, "under a day"], [3, "1–3 days"], [5, "3–5 days"], [7, "5–7 days"],
+    [14, "1–2 weeks"], [21, "2–3 weeks"], [28, "3–4 weeks"], [30, "about a month"],
+    [60, "1–2 months"], [90, "2–3 months"], [180, "3–6 months"], [365, "6–12 months"],
+    [730, "1–2 years"], [Infinity, "2+ years"],
+  ];
+  function dayBand(days) {
+    for (var i = 0; i < DAY_BANDS.length; i++) { if (days < DAY_BANDS[i][0]) return { idx: i, label: DAY_BANDS[i][1] }; }
+    return { idx: DAY_BANDS.length - 1, label: DAY_BANDS[DAY_BANDS.length - 1][1] };
+  }
+
+  function sectionAssign(sortId, ctx) {
+    // returns function(char) -> { key, label, rank }   (lower rank = earlier header)
+    switch (sortId) {
+      case "study": return function (ch) {
+        var j = meta(ch).jlpt;
+        if (!j) return { key: "out", label: OUTSIDE, rank: 999 };
+        return { key: "n" + j, label: "JLPT N" + j, rank: 6 - j };   // N5 first
+      };
+      case "grade": return function (ch) {
+        var g = meta(ch).grade;
+        if (g == null) return { key: "out", label: OUTSIDE, rank: 999 };
+        if (g >= 1 && g <= 6) return { key: "g" + g, label: "Grade " + g, rank: g };
+        if (g === 8) return { key: "g8", label: "Secondary (jōyō)", rank: 8 };
+        return { key: "g9", label: "Jinmeiyō (names)", rank: 9 };
+      };
+      case "strokesAsc": return function (ch) {
+        var n = meta(ch).strokeCount || 0, band = Math.floor((n - 1) / 2);
+        var lo = band * 2 + 1, hi = lo + 1;
+        return { key: "s" + band, label: lo + "–" + hi + " strokes", rank: band };
+      };
+      case "freqAsc": return function (ch) {
+        var f = meta(ch).freq;
+        if (f == null || f >= 99999) return { key: "out", label: OUTSIDE, rank: 99999 };
+        var band = Math.floor((f - 1) / 100), lo = band * 100 + 1, hi = lo + 99;
+        return { key: "f" + band, label: "#" + lo + "–" + hi, rank: band };
+      };
+      case "dueFirst": return function (ch) {
+        if (Store.getProgress(ch).status !== "review") return { key: "out", label: OUTSIDE, rank: 999 };
+        var od = Scheduler.overdueDays(ch);
+        if (od < 0) return { key: "out", label: OUTSIDE, rank: 999 };
+        if (!isFinite(od)) return { key: "due", label: "Due now", rank: -1 };
+        var b = dayBand(od);
+        return { key: "od" + b.idx, label: b.label + " overdue", rank: 100 - b.idx };   // most overdue first
+      };
+      case "nextDue": return function (ch) {
+        if (Store.getProgress(ch).status !== "review") return { key: "out", label: OUTSIDE, rank: 999 };
+        var due = Scheduler.dueDate(ch);
+        if (due == null) return { key: "due", label: "Due now", rank: -1 };
+        var u = (due - Date.now()) / DAY_MS;
+        if (u <= 0) return { key: "due", label: "Due now", rank: -1 };
+        var b = dayBand(u);
+        return { key: "nd" + b.idx, label: "in " + b.label, rank: b.idx };
+      };
+      case "lapsesDesc": return function (ch) {
+        var l = Scheduler.lapses(ch);
+        if (l <= 0) return { key: "out", label: "Never failed", rank: 999 };
+        var pct = ctx.pct[ch];   // 0..1 percentile rank (0 = most failed)
+        if (pct < 0.05) return { key: "p0", label: "Top 5% most failed", rank: 0 };
+        if (pct < 0.20) return { key: "p1", label: "Next 15% most failed", rank: 1 };
+        if (pct < 0.50) return { key: "p2", label: "Next 30% most failed", rank: 2 };
+        return { key: "p3", label: "Lower 50% (least failed)", rank: 3 };
+      };
+      default: return null;   // random / unknown → no sectioning
+    }
+  }
+  var DAY_MS = 24 * 60 * 60 * 1000;
+
+  function sectionContext(sortId, chars) {
+    if (sortId !== "lapsesDesc") return null;
+    var failed = chars.filter(function (c) { return Scheduler.lapses(c) > 0; })
+      .sort(function (a, b) { return Scheduler.lapses(b) - Scheduler.lapses(a); });
+    var pct = {}, n = failed.length || 1;
+    failed.forEach(function (c, i) { pct[c] = i / n; });
+    return { pct: pct };
+  }
+
+  function sections(chars, sortId) {
+    var assign = sectionAssign(sortId, sectionContext(sortId, chars));
+    if (!assign) return [{ label: null, chars: chars.slice() }];
+    var groups = {}, keys = [];
+    chars.forEach(function (ch) {
+      var s = assign(ch);
+      if (!groups[s.key]) { groups[s.key] = { label: s.label, rank: s.rank, chars: [] }; keys.push(s.key); }
+      groups[s.key].chars.push(ch);
+    });
+    keys.sort(function (a, b) { return groups[a].rank - groups[b].rank; });
+    return keys.map(function (k) { return { label: groups[k].label, chars: groups[k].chars }; });
   }
 
   function shuffle(chars) {
@@ -270,5 +376,5 @@ window.Filters = (function () {
     return a;
   }
 
-  return { DEFS: DEFS, SORTS: SORTS, DEFAULT_SORT: DEFAULT_SORT, apply: apply, sortChars: sortChars, shuffle: shuffle };
+  return { DEFS: DEFS, SORTS: SORTS, DEFAULT_SORT: DEFAULT_SORT, apply: apply, sortChars: sortChars, sections: sections, shuffle: shuffle };
 })();

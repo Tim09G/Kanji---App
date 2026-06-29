@@ -23,10 +23,17 @@ mixing new and due characters behaves consistently.
 - **Prior kanji** button on the draw screen shows the previous character read-only;
   tap to return and continue (disabled during the 1s auto-advance countdown).
 - **Search** for a kanji by typing the character, an English meaning, or a reading
-  in **romaji** (e.g. "sui"). (Handwriting/draw-to-search is a planned fast-follow.)
+  in **romaji** (e.g. "sui").
 - **Display order** (dropdown) sets how the list is shown; a separate **Review
   order** control (Random by default) sets the order characters come up *during*
   the session — two independent settings.
+- **Grouped, sectioned display**: the list is broken into labelled sections that
+  match the active order — JLPT level (Study order), grade, 2-stroke bands, 100-rank
+  frequency bands, overdue/next-due day-ranges, or lapse percentiles. Kanji that
+  don't fit the active order (e.g. jinmeiyō under JLPT) collect in an **"Outside
+  current order"** bucket — nothing is ever hidden. **Tapping a section header**
+  selects every kanji in that section that's currently visible (i.e. that also
+  passes the active filters).
 - **Always-on review tracking**: a **tappable** banner shows which characters are
   **due for review** (independent of any filters) — tap it to review exactly those.
 - Each character shows its **status** (New / Learning / Due / Learned) in a
@@ -45,15 +52,19 @@ mixing new and due characters behaves consistently.
     visually/structurally similar characters.
   - **Group** — an iOS-style **scroll-picker**: one wheel for block size (50/100/200)
     and one to scroll between blocks.
-- **Sort**: study order, frequency, fewest strokes, **most overdue**, **next due
-  (soonest upcoming)**, **most failed** — or **Randomize** (review order).
+- **Sort**: study order (JLPT), **grade level**, frequency, fewest strokes, **most
+  overdue**, **next due (soonest upcoming)**, **most failed** — or **Randomize**
+  (review order).
 - Starting a session handles each character by its status: new ones get the
   scaffolding, known ones get reviewed — mixed together.
 
 ### 👁 Browse — full per-kanji reference
 - Search (typed) + **brisk** animated stroke order, with the full info panel: readings,
   meaning, stroke count, frequency, JLPT, radical, alternate radical-usage forms
-  (e.g. 手 → 扌), and the complete vocabulary list with **audio** (🔊).
+  (e.g. 手 → 扌), and the complete vocabulary list (grouped by reading) with **audio** (🔊).
+- The **same display-order, filter and grouped-section system as the Study list**
+  (status, difficulty, JLPT/grade, lapses/leeches, similar-to, group, …) narrows and
+  organises the Browse picker; section headers here are visual labels.
 
 ### ⚙️ Settings
 - **Reset progress** lives here now, behind **two confirmations**.
@@ -171,8 +182,12 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
 - **Stroke data is uniformly local KanjiVG** — verified all kanji have valid local
   stroke files with no missing/fallback source (so the calligraphic look is the
   standard KanjiVG style, not a loading gap).
-- **Draw-to-search** (handwriting lookup) is deferred; typed search (character /
-  reading / meaning) ships first.
+- **Search** is typed only (character / reading / meaning); the unbuilt
+  draw-to-search input has been removed.
+- **"Similar to"** matching uses component overlap weighted by component rarity
+  (IDF): a shared distinctive component (e.g. 交 in 校/効/較/絞/郊) ranks far above a
+  shared common radical (e.g. 木), and up to 12 candidates are surfaced — tuned to
+  err broad (closer to Imiwa) while keeping the most visually-similar kanji on top.
 - **Radical Japanese names** come from a hand-built map over the radicals in the
   current set; component meanings/readings are looked up from the KANJIDIC2 dataset.
 - **Radical source**: the classifying radical uses KanjiVG's KANJIDIC-aligned radical
