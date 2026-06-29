@@ -116,8 +116,8 @@ window.Scheduler = (function () {
     return out;
   }
 
-  // Coarse historical-difficulty bucket (unchanged; the FSRS-derived difficulty
-  // filter/mastery views are a deferred follow-up, not built this round).
+  // Coarse historical-difficulty bucket (legacy; kept for any callers. The filter
+  // now uses fsrsDifficultyCat below).
   function difficulty(char) {
     var s = statsOf(char), c = rawCard(char) || { lapses: 0 };
     if (s.attempts === 0) return "unseen";
@@ -125,6 +125,31 @@ window.Scheduler = (function () {
     if (c.lapses >= 2 || missRate >= 1.5) return "hard";
     if (c.lapses === 1 || missRate >= 0.5) return "medium";
     return "easy";
+  }
+
+  // ---- FSRS-state accessors (for the difficulty / lapse / leech filters) ----
+  function lapses(char) { var c = rawCard(char); return c ? (c.lapses || 0) : 0; }
+  function reps(char) { var c = rawCard(char); return c ? (c.reps || 0) : 0; }
+  function stability(char) { var c = rawCard(char); return c ? c.stability : null; }
+
+  // (B) Difficulty category from the FSRS difficulty value (D, ~1–10). A kanji with
+  // no card (new, or still in Learn scaffolding) has no FSRS data → "unseen".
+  function fsrsDifficultyCat(char) {
+    var c = rawCard(char);
+    if (Store.getProgress(char).status !== "review" || !c) return "unseen";
+    var d = c.difficulty || 0;
+    if (d >= 7) return "hard";
+    if (d >= 4) return "medium";
+    return "easy";
+  }
+
+  // (F) Leech: keeps lapsing despite review. ≥4 lapses, OR ≥3 lapses and failed on
+  // 40%+ of its reviews (catches early-but-persistent failers without waiting for 4).
+  function isLeech(char) {
+    var c = rawCard(char);
+    if (!c) return false;
+    var l = c.lapses || 0, r = c.reps || 0;
+    return l >= 4 || (l >= 3 && r > 0 && (l / r) >= 0.4);
   }
 
   function cardOf(char) { return rawCard(char); }
@@ -141,6 +166,11 @@ window.Scheduler = (function () {
     daysSinceReview: daysSinceReview,
     previewIntervals: previewIntervals,
     difficulty: difficulty,
+    fsrsDifficultyCat: fsrsDifficultyCat,
+    lapses: lapses,
+    reps: reps,
+    stability: stability,
+    isLeech: isLeech,
     statsOf: statsOf,
     cardOf: cardOf,
   };

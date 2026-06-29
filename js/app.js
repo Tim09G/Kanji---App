@@ -164,14 +164,25 @@
   function renderBrowseVocab(meta) {
     var root = $("browse-vocab-list"); root.innerHTML = "";
     if (!meta.vocab || !meta.vocab.length) { root.innerHTML = '<span class="cue-empty">No vocabulary yet for this kanji.</span>'; return; }
-    meta.vocab.forEach(function (w) {
+    function vocabItem(w) {
       var item = document.createElement("div"); item.className = "vocab-item";
       var reading = w.r.map(function (s) { return s.t; }).join("");
       item.appendChild(window.Speak.speakButton(w.jp));
       var jp = document.createElement("span"); jp.className = "vocab-jp"; jp.textContent = " " + w.jp;
       var gl = document.createElement("span"); gl.className = "vocab-gloss"; gl.textContent = "（" + reading + "） — " + w.en;
       item.appendChild(jp); item.appendChild(gl);
-      root.appendChild(item);
+      return item;
+    }
+    // G: group by the kanji's reading, matching the study-screen cue panel.
+    var groups = {}, order = [];
+    meta.vocab.forEach(function (w) {
+      var key = w.reading || "";
+      if (!groups[key]) { groups[key] = []; order.push(key); }
+      groups[key].push(w);
+    });
+    order.forEach(function (reading) {
+      if (reading) { var rh = document.createElement("div"); rh.className = "vocab-reading"; rh.textContent = reading; root.appendChild(rh); }
+      groups[reading].forEach(function (w) { root.appendChild(vocabItem(w)); });
     });
   }
   function openBrowse() {
@@ -219,21 +230,92 @@
     $("list-start").disabled = (n === 0 && newSliderVal() === 0);
   }
 
+  // Filter values are tracked here (decoupled from input type) so selects, the
+  // kanji text input (A) and the group scroll-picker (E) all read out uniformly.
+  var filterValues = {};
+
   function buildFilterRows() {
     var wrap = $("filter-rows"); wrap.innerHTML = "";
+    filterValues = {};
     Object.keys(Filters.DEFS).forEach(function (id) {
       var def = Filters.DEFS[id];
       var row = document.createElement("div"); row.className = "filter-row";
-      var lab = document.createElement("label"); lab.textContent = def.label;
-      var sel = document.createElement("select"); sel.className = "select-input"; sel.dataset.filter = id;
-      var any = document.createElement("option"); any.value = ""; any.textContent = "— any —"; sel.appendChild(any);
-      def.options().forEach(function (o) { var opt = document.createElement("option"); opt.value = o.value; opt.textContent = o.label; sel.appendChild(opt); });
-      row.appendChild(lab); row.appendChild(sel); wrap.appendChild(row);
+      var lab = document.createElement("label"); lab.className = "filter-label"; lab.textContent = def.label;
+      row.appendChild(lab);
+      if (def.ui === "kanji") buildKanjiFilterRow(row, def);
+      else if (def.ui === "group") buildGroupFilterRow(row, def);
+      else buildSelectFilterRow(row, def);
+      wrap.appendChild(row);
     });
   }
+
+  function buildSelectFilterRow(row, def) {
+    var sel = document.createElement("select"); sel.className = "select-input"; sel.dataset.filter = def.id;
+    var any = document.createElement("option"); any.value = ""; any.textContent = "— any —"; sel.appendChild(any);
+    var opts = def.options();
+    opts.forEach(function (o) { var opt = document.createElement("option"); opt.value = o.value; opt.textContent = o.label; sel.appendChild(opt); });
+    var hint = document.createElement("small"); hint.className = "filter-opt-hint";
+    sel.addEventListener("change", function () {
+      if (sel.value === "") { delete filterValues[def.id]; hint.textContent = ""; return; }
+      filterValues[def.id] = sel.value;
+      var o = opts.filter(function (x) { return String(x.value) === sel.value; })[0];
+      hint.textContent = (o && o.hint) || "";
+    });
+    row.appendChild(sel); row.appendChild(hint);
+  }
+
+  // A: type/enter any kanji; filter to it + its similar list.
+  function buildKanjiFilterRow(row, def) {
+    var inp = document.createElement("input"); inp.type = "text"; inp.className = "select-input kanji-filter-input";
+    inp.maxLength = 2; inp.placeholder = "Type a kanji, e.g. 校"; inp.dataset.filter = def.id;
+    var hint = document.createElement("small"); hint.className = "filter-opt-hint";
+    inp.addEventListener("input", function () {
+      var v = (inp.value || "").trim(), ch = null;
+      for (var i = 0; i < v.length; i++) { if (/[㐀-鿿]/.test(v[i])) { ch = v[i]; break; } }
+      if (!ch || !metaOf(ch)) { delete filterValues[def.id]; hint.textContent = ch ? "Not in the set." : ""; return; }
+      filterValues[def.id] = ch;
+      var sim = metaOf(ch).similar || [];
+      hint.textContent = sim.length ? ("similar: " + sim.join(" ")) : "no similar characters found";
+    });
+    row.appendChild(inp); row.appendChild(hint);
+  }
+
+  // E: iOS-style scroll-picker — a size wheel and a group wheel.
+  function buildGroupFilterRow(row, def) {
+    row.classList.add("filter-row-wide");
+    var box = document.createElement("div"); box.className = "group-filter";
+    var enable = document.createElement("label"); enable.className = "group-enable";
+    var cb = document.createElement("input"); cb.type = "checkbox"; cb.dataset.groupEnable = "1";
+    enable.appendChild(cb); enable.appendChild(document.createTextNode(" Limit to a block"));
+    box.appendChild(enable);
+    var cols = document.createElement("div"); cols.className = "wheel-cols";
+    var sizeSlot = document.createElement("div"); sizeSlot.className = "wheel-slot";
+    var sizeCap = document.createElement("div"); sizeCap.className = "wheel-cap"; sizeCap.textContent = "Size";
+    var grpSlot = document.createElement("div"); grpSlot.className = "wheel-slot";
+    var grpCap = document.createElement("div"); grpCap.className = "wheel-cap"; grpCap.textContent = "Group";
+    cols.appendChild(sizeSlot); cols.appendChild(grpSlot);
+    box.appendChild(cols); row.appendChild(box);
+
+    var grpWheel = null;
+    function commit() { if (cb.checked && grpWheel) filterValues[def.id] = { size: sizeWheel.value(), index: grpWheel.index() }; }
+    var sizeWheel = buildWheel([50, 100, 200], function (v) { return String(v); }, function () { rebuildGroups(); commit(); });
+    sizeSlot.appendChild(sizeCap); sizeSlot.appendChild(sizeWheel.el);
+    grpSlot.appendChild(grpCap);
+    function rebuildGroups() {
+      var size = sizeWheel.value(), count = def.groupCount(size), vals = [];
+      for (var i = 0; i < count; i++) vals.push(i);
+      if (grpWheel && grpWheel.el.parentNode) grpSlot.removeChild(grpWheel.el);
+      grpWheel = buildWheel(vals, function (i) { return (i * size + 1) + "–" + Math.min((i + 1) * size, allChars().length); }, commit);
+      grpSlot.appendChild(grpWheel.el);
+    }
+    rebuildGroups();
+    cb.addEventListener("change", function () { if (cb.checked) commit(); else delete filterValues[def.id]; });
+  }
+
   function activeFilters() {
-    return Array.prototype.map.call($("filter-rows").querySelectorAll("select"), function (sel) { return { id: sel.dataset.filter, value: sel.value }; })
-      .filter(function (f) { return f.value !== ""; });
+    return Object.keys(filterValues)
+      .filter(function (id) { var v = filterValues[id]; return v !== "" && v != null; })
+      .map(function (id) { return { id: id, value: filterValues[id] }; });
   }
   // C3: filters narrow the visible list (not just highlight).
   function applyFilters() {
@@ -246,11 +328,52 @@
     $("filter-match").textContent = active.length ? (matched.length + " shown") : "";
   }
   function resetFilters() {
-    Array.prototype.forEach.call($("filter-rows").querySelectorAll("select"), function (s) { s.value = ""; });
+    buildFilterRows();                 // clears filterValues + resets every control
     listVisible = Filters.sortChars(allChars(), currentSort());
     listSelected = {};
     buildListGrid();
     $("filter-match").textContent = "";
+  }
+
+  // A reusable iOS-style scroll wheel (E). `labelFn(item, idx)` renders each row;
+  // `onSelect()` fires when the centered selection changes. ITEMH must match CSS.
+  var WHEEL_ITEMH = 36;
+  function buildWheel(items, labelFn, onSelect) {
+    var col = document.createElement("div"); col.className = "wheel";
+    var inner = document.createElement("div"); inner.className = "wheel-inner";
+    var topPad = document.createElement("div"); topPad.className = "wheel-pad";
+    inner.appendChild(topPad);
+    items.forEach(function (it, i) {
+      var d = document.createElement("div"); d.className = "wheel-item"; d.textContent = labelFn(it, i); d.dataset.idx = i;
+      d.addEventListener("click", function () { selectIdx(i, true); });
+      inner.appendChild(d);
+    });
+    var botPad = document.createElement("div"); botPad.className = "wheel-pad"; inner.appendChild(botPad);
+    col.appendChild(inner);
+    var selected = 0;
+    function itemEls() { return inner.querySelectorAll(".wheel-item"); }
+    function paint() { Array.prototype.forEach.call(itemEls(), function (e, j) { e.classList.toggle("sel", j === selected); }); }
+    function selectIdx(i, scroll) {
+      i = Math.max(0, Math.min(items.length - 1, i));
+      var changed = i !== selected; selected = i; paint();
+      if (scroll) col.scrollTop = i * WHEEL_ITEMH;
+      if (changed && onSelect) onSelect();
+    }
+    var t;
+    col.addEventListener("scroll", function () {
+      clearTimeout(t);
+      t = setTimeout(function () {
+        var i = Math.max(0, Math.min(items.length - 1, Math.round(col.scrollTop / WHEEL_ITEMH)));
+        if (i !== selected) { selected = i; paint(); if (onSelect) onSelect(); }
+      }, 80);
+    });
+    paint();
+    return {
+      el: col,
+      value: function () { return items[selected]; },
+      index: function () { return selected; },
+      set: function (i) { selectIdx(i, true); },
+    };
   }
   // C4: changing the order actually re-sorts the visible list.
   function applySort() { listVisible = Filters.sortChars(listVisible, currentSort()); buildListGrid(); }
@@ -329,7 +452,6 @@
     listOpenedFrom = openedFrom;
     $("list-title").textContent = title;
     buildFilterRows(); buildSortOptions(); buildReviewOrder(); setupNewSlider();
-    Array.prototype.forEach.call($("filter-rows").querySelectorAll("select"), function (s) { s.value = ""; });
     $("filter-match").textContent = "";
     $("list-search").value = "";
     listSelected = {};

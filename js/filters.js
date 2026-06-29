@@ -14,8 +14,13 @@
 window.Filters = (function () {
   "use strict";
 
+  var _metaMap = null;
   function meta(char) {
-    return (window.KANJI_META || []).filter(function (m) { return m.char === char; })[0];
+    if (!_metaMap) {
+      _metaMap = {};
+      (window.KANJI_META || []).forEach(function (m) { if (!_metaMap[m.char]) _metaMap[m.char] = m; });
+    }
+    return _metaMap[char];
   }
   function radicalOf(char) {
     var c = (window.KANJI_COMPONENTS || {})[char];
@@ -53,7 +58,10 @@ window.Filters = (function () {
       },
     },
 
-    // Time since last reviewed — graduated buckets spanning days to months.
+    // Time since last reviewed — graduated buckets spanning days to years.
+    // (C) Only surfaces kanji already in the SRS pool (reviewed at least once) whose
+    // time-since-last-review is >= the threshold. New / never-reviewed kanji have no
+    // last_review (daysSinceReview = Infinity) and are excluded by the isFinite check.
     timeSinceReview: {
       id: "timeSinceReview",
       label: "Not reviewed in",
@@ -63,10 +71,14 @@ window.Filters = (function () {
           { value: 7, label: "1 week" }, { value: 14, label: "2 weeks" }, { value: 21, label: "3 weeks" },
           { value: 28, label: "4 weeks" }, { value: 30, label: "1 month" }, { value: 60, label: "2 months" },
           { value: 90, label: "3 months" }, { value: 180, label: "6 months" },
+          { value: 365, label: "1 year" }, { value: 730, label: "2 years" },
         ];
       },
       predicate: function (days) {
-        return function (char) { return Scheduler.daysSinceReview(char) >= days; };
+        return function (char) {
+          var d = Scheduler.daysSinceReview(char);
+          return isFinite(d) && d >= Number(days);   // reviewed-at-least-once AND >= threshold
+        };
       },
     },
 
@@ -101,14 +113,92 @@ window.Filters = (function () {
       },
     },
 
-    // Visually/structurally similar to a chosen kanji (includes that kanji).
+    // (B) Difficulty — derived from the FSRS difficulty value (D, ~1–10) of each
+    // kanji's card. "Not attempted" is kept distinct since FSRS has no data for it.
+    difficulty: {
+      id: "difficulty",
+      label: "Difficulty",
+      options: function () {
+        return [
+          { value: "hard", label: "Hard", hint: "FSRS rates these hardest for you — they come up most often." },
+          { value: "medium", label: "Medium", hint: "Average effort to recall." },
+          { value: "easy", label: "Easy", hint: "Easy for you — FSRS leaves long gaps between reviews." },
+          { value: "unseen", label: "Not attempted", hint: "Never studied yet — no review data." },
+        ];
+      },
+      predicate: function (level) {
+        return function (char) { return Scheduler.fsrsDifficultyCat(char) === level; };
+      },
+    },
+
+    // (F) Lapses — how many times a kanji has been failed after it was learned.
+    lapses: {
+      id: "lapses",
+      label: "Times failed",
+      options: function () {
+        return [
+          { value: 1, label: "1 or more", hint: "Failed at least once since learning." },
+          { value: 2, label: "2 or more" },
+          { value: 3, label: "3 or more" },
+          { value: 5, label: "5 or more", hint: "Persistent trouble characters." },
+        ];
+      },
+      predicate: function (n) {
+        return function (char) { return Scheduler.lapses(char) >= Number(n); };
+      },
+    },
+
+    // (F) Leeches — items that keep coming back despite repeated review.
+    leech: {
+      id: "leech",
+      label: "Leeches",
+      options: function () {
+        return [{ value: "1", label: "Leeches only", hint: "Kept failing: ≥4 lapses, or ≥3 lapses on 40%+ of reviews." }];
+      },
+      predicate: function () {
+        return function (char) { return Scheduler.isLeech(char); };
+      },
+    },
+
+    // (F) JLPT level (from KANJIDIC2).
+    jlpt: {
+      id: "jlpt",
+      label: "JLPT level",
+      options: function () {
+        return [5, 4, 3, 2, 1].map(function (n) { return { value: n, label: "N" + n }; });
+      },
+      predicate: function (n) {
+        return function (char) { return meta(char).jlpt === Number(n); };
+      },
+    },
+
+    // (F) School grade (from KANJIDIC2): 1–6 kyōiku, 8 secondary jōyō, 9/10 jinmeiyō.
+    grade: {
+      id: "grade",
+      label: "School grade",
+      options: function () {
+        var present = {};
+        allChars().forEach(function (c) { var g = meta(c).grade; if (g != null) present[g] = true; });
+        function lbl(g) {
+          if (g >= 1 && g <= 6) return "Grade " + g + " (elementary)";
+          if (g === 8) return "Secondary (jōyō)";
+          if (g === 9 || g === 10) return "Jinmeiyō (names)";
+          return "Grade " + g;
+        }
+        return Object.keys(present).map(Number).sort(function (a, b) { return a - b; })
+          .map(function (g) { return { value: g, label: lbl(g) }; });
+      },
+      predicate: function (g) {
+        return function (char) { return meta(char).grade === Number(g); };
+      },
+    },
+
+    // (A) Visually/structurally similar to a chosen kanji (any kanji; includes it).
+    // UI is a kanji text input rather than a fixed dropdown.
     similar: {
       id: "similar",
       label: "Similar to",
-      options: function () {
-        return allChars().filter(function (c) { return (meta(c).similar || []).length; })
-          .map(function (c) { return { value: c, label: c + " " + meta(c).meaning }; });
-      },
+      ui: "kanji",
       predicate: function (base) {
         var m = meta(base);
         var set = {};
@@ -118,42 +208,20 @@ window.Filters = (function () {
       },
     },
 
-    // Blocks of 50 in study order (with a small set this is one block).
+    // (E) A contiguous block of the study order, chosen via a scroll-picker
+    // (size wheel + group wheel). Value is { size, index } (0-based group index).
     group: {
       id: "group",
-      label: "Group (of 50)",
-      options: function () {
-        var n = allChars().length;
-        var blocks = Math.ceil(n / 50);
-        var opts = [];
-        for (var i = 0; i < blocks; i++) {
-          opts.push({ value: i, label: (i * 50 + 1) + "–" + Math.min((i + 1) * 50, n) });
-        }
-        return opts;
-      },
-      predicate: function (block) {
+      label: "Group",
+      ui: "group",
+      groupCount: function (size) { return Math.max(1, Math.ceil(allChars().length / (Number(size) || 50))); },
+      predicate: function (val) {
+        var size = Number(val && val.size) || 50, idx = Number(val && val.index) || 0;
         var order = allChars();
-        var start = block * 50, end = start + 50;
+        var start = idx * size, end = start + size;
         var set = {};
         order.slice(start, end).forEach(function (c) { set[c] = true; });
         return function (char) { return !!set[char]; };
-      },
-    },
-
-    // Historical difficulty from past performance.
-    difficulty: {
-      id: "difficulty",
-      label: "Difficulty",
-      options: function () {
-        return [
-          { value: "hard", label: "Hard (struggled)" },
-          { value: "medium", label: "Medium" },
-          { value: "easy", label: "Easy" },
-          { value: "unseen", label: "Not yet attempted" },
-        ];
-      },
-      predicate: function (level) {
-        return function (char) { return Scheduler.difficulty(char) === level; };
       },
     },
   };
@@ -173,6 +241,14 @@ window.Filters = (function () {
     strokesAsc: { label: "Increasing stroke count", cmp: function (a, b) { return meta(a).strokeCount - meta(b).strokeCount; } },
     freqAsc: { label: "Frequency (most common first)", cmp: function (a, b) { return meta(a).freq - meta(b).freq; } },
     dueFirst: { label: "Most overdue first", cmp: function (a, b) { return Scheduler.overdueDays(b) - Scheduler.overdueDays(a); } },
+    // (F) Soonest upcoming due date first — previews what's coming up, including
+    // future-due cards (distinct from "most overdue", which only ranks lateness).
+    nextDue: { label: "Next due (soonest first)", cmp: function (a, b) {
+      var da = Scheduler.dueDate(a), db = Scheduler.dueDate(b);
+      return (da == null ? Infinity : da) - (db == null ? Infinity : db);
+    } },
+    // (F) Most-failed first — surfaces personal trouble characters.
+    lapsesDesc: { label: "Most failed first", cmp: function (a, b) { return Scheduler.lapses(b) - Scheduler.lapses(a); } },
   };
   var DEFAULT_SORT = "random";
 

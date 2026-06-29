@@ -31,9 +31,22 @@ mixing new and due characters behaves consistently.
   **due for review** (independent of any filters) — tap it to review exactly those.
 - Each character shows its **status** (New / Learning / Due / Learned) in a
   **distinct colour**.
-- **Filters** (combine with **AND**): status, not-reviewed-in (1 day … 6 months),
-  stroke count, radical, similar characters, group, historical difficulty.
-- **Sort** (frequency, fewest strokes, most overdue…) or **Randomize**.
+- **Filters** (combine with **AND**):
+  - **Status** (New / Learning / Due / Learned).
+  - **Not reviewed in** — 1 day … **2 years**; only surfaces kanji already in the SRS
+    pool (reviewed at least once) whose time-since-review is ≥ the threshold.
+  - **Difficulty** — derived from each card's **FSRS difficulty** (Hard / Medium /
+    Easy), plus **Not attempted**; each option shows a one-line explanation.
+  - **Times failed (lapses)** and **Leeches** (kept failing: ≥4 lapses, or ≥3 lapses
+    on 40%+ of reviews) — surface personal trouble characters.
+  - **JLPT level** and **School grade** (from KANJIDIC2).
+  - **Stroke count**, **Radical**.
+  - **Similar to** — type/enter **any** kanji; filters to it and its
+    visually/structurally similar characters.
+  - **Group** — an iOS-style **scroll-picker**: one wheel for block size (50/100/200)
+    and one to scroll between blocks.
+- **Sort**: study order, frequency, fewest strokes, **most overdue**, **next due
+  (soonest upcoming)**, **most failed** — or **Randomize** (review order).
 - Starting a session handles each character by its status: new ones get the
   scaffolding, known ones get reviewed — mixed together.
 
@@ -133,8 +146,10 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
     the app's Learn scaffolding and failure side-loop.
   - A newly-graduated kanji is now scheduled a few days out (Good → ~3 days) rather
     than being immediately due.
-  - The **FSRS-derived Difficulty filter categories and mastery-level breakdown**
-    are a deferred follow-up (read-only views into FSRS state).
+  - The **Difficulty filter** now reads FSRS's per-card difficulty value (D, ~1–10):
+    Hard (D≥7) / Medium (4≤D<7) / Easy (D<4), plus **Not attempted** for cards with
+    no FSRS data. The **lapse** and **leech** filters also read FSRS card state
+    (lapses / reps). A mastery-level breakdown view remains a future addition.
 - **What counts as "graduating" from Learn step 4:** completing the character once
   (you may retry strokes). Easy to make stricter later — see `Store.graduate` /
   `runLearnSession` in the code.
