@@ -38,7 +38,7 @@ mixing new and due characters behaves consistently.
   scaffolding, known ones get reviewed — mixed together.
 
 ### 👁 Browse — full per-kanji reference
-- Search (typed) + animated stroke order, with the full info panel: readings,
+- Search (typed) + **brisk** animated stroke order, with the full info panel: readings,
   meaning, stroke count, frequency, JLPT, radical, alternate radical-usage forms
   (e.g. 手 → 扌), and the complete vocabulary list with **audio** (🔊).
 
@@ -95,6 +95,10 @@ name-use) character. Each one is generated from open data:
   no example words; that's expected.
 - **Radical & component highlighting** from KanjiVG, and a **"Similar to"** list
   computed across the whole set by shared components.
+- **Archaic/variant forms** (compatibility-ideograph codepoints like 社 U+FA4C that
+  KANJIDIC2 doesn't define separately) borrow the **meaning and readings of their
+  modern equivalent** (found via Unicode NFKC) and are marked with an **"\*archaic"**
+  tag, so they're never left blank.
 
 The 14 core beginner kanji keep their hand-authored vocabulary.
 

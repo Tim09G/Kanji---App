@@ -203,6 +203,16 @@ html, body {
 .cue-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); margin-bottom: 0.2rem; }
 .cue-value { font-size: 1.15rem; }
 .cue-empty { color: var(--muted); font-size: 0.9rem; }
+.archaic-tag {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.7em;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--muted);
+  vertical-align: super;
+  cursor: help;
+}
 
 .vocab-item { margin: 0.25rem 0; }
 .vocab-word {

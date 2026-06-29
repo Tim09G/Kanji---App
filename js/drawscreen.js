@@ -93,6 +93,15 @@ window.DrawScreen = (function () {
     return b;
   }
 
+  // A: marker for archaic/variant forms that borrow their modern equivalent's meaning.
+  function archaicTag(modern) {
+    var t = document.createElement("span");
+    t.className = "archaic-tag";
+    t.textContent = "*archaic";
+    if (modern) t.title = "Archaic variant of " + modern + " — shares its meaning.";
+    return t;
+  }
+
   function renderCueContent(char) {
     var meta = metaFor(char);
     var settings = Store.getSettings().cues;
@@ -114,6 +123,7 @@ window.DrawScreen = (function () {
       var mv = document.createElement("div");
       mv.className = "cue-value";
       mv.textContent = meta.meaning;
+      if (meta.archaic) mv.appendChild(archaicTag(meta.modern));
       mb.appendChild(mv);
       root.appendChild(mb);
     }

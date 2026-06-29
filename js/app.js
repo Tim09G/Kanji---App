@@ -130,7 +130,16 @@
     var meta = metaOf(char);
     Array.prototype.forEach.call($("browse-picker").children, function (chip) { chip.classList.toggle("active", chip.dataset.char === char); });
     $("browse-char").textContent = char;
-    $("browse-meaning").textContent = meta.meaning;
+    var bm = $("browse-meaning");
+    bm.textContent = meta.meaning;
+    if (meta.archaic) {                 // A: archaic/variant form borrows modern meaning
+      var atag = document.createElement("span");
+      atag.className = "archaic-tag";
+      atag.textContent = "*archaic";
+      atag.title = "Archaic variant of " + meta.modern + " — shares its meaning.";
+      bm.appendChild(document.createTextNode(" "));
+      bm.appendChild(atag);
+    }
     $("browse-on").textContent = meta.on.join("、") || "—";
     $("browse-kun").textContent = meta.kun.join("、") || "—";
     $("browse-strokes").textContent = meta.strokeCount;
@@ -147,6 +156,8 @@
     browseWriter = HanziWriter.create($("browse-target"), char, {
       width: 300, height: 300, padding: 5, showCharacter: true, showOutline: true,
       strokeColor: "#1f2933", outlineColor: "#e2e6ea",
+      // B: brisker stroke animation (defaults of 1x speed / 1s between strokes drag).
+      strokeAnimationSpeed: 2, delayBetweenStrokes: 250,
       charDataLoader: function (c, done) { fetch("data/kanji/" + encodeURIComponent(c) + ".json").then(function (r) { return r.json(); }).then(done); },
     });
   }
