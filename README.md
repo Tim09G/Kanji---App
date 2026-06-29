@@ -58,7 +58,11 @@ mixing new and due characters behaves consistently.
     strokes are coloured on the character and shown as **radical + Japanese name in
     hiragana**; for compound kanji each component is **hoverable**, showing its
     meaning and two main readings.
-- **Vocabulary audio** (🔊) plays each example word (Web Speech API).
+- **Vocabulary audio** (🔊) plays each example word (Web Speech API). It selects an
+  installed Japanese system voice and waits for voices to finish loading, so playback
+  is reliable on browsers that load TTS voices asynchronously. (If your device has no
+  Japanese voice installed, the OS may substitute a default voice or stay silent —
+  that's a system-voice setting, not the app.)
 - **Results** ("Session Complete") show **Newly Learned** (blue), the **Reviewed
   Kanji** score (distinct kanji correct), and the **Missed** kanji (red).
 - **Per-stroke help**: get a stroke wrong and you get one redo; miss again and a
@@ -84,9 +88,11 @@ name-use) character. Each one is generated from open data:
 - **Stroke order** from KanjiVG (HanziWriter format).
 - **Metadata** (meaning, on/kun readings, grade, JLPT, frequency rank, stroke
   count, classifying radical) from KANJIDIC2.
-- **Vocabulary** from JMdict (common words), grouped ≥2 per reading and aiming for
-  ≥8 total **where the data supports it** — no padding. Sparser/rarer characters
-  (mostly jinmeiyō) may have few or no example words; that's expected.
+- **Vocabulary** from the **full JMdict** (not just the common-word subset),
+  grouped ≥2 per *common* reading and aiming for ≥8 total **where the data supports
+  it** — no padding. Common words are ranked first; rarer/variant kanji still get
+  their real (less-common) words. A small number of very rare characters have few or
+  no example words; that's expected.
 - **Radical & component highlighting** from KanjiVG, and a **"Similar to"** list
   computed across the whole set by shared components.
 
@@ -97,8 +103,9 @@ The 14 core beginner kanji keep their hand-authored vocabulary.
   from the standard KanjiVG glyph) get **no radical/component highlighting** — they
   keep stroke data, metadata and vocab, but the highlight is omitted rather than
   shown misaligned.
-- **~665 kanji** (sparse/rare, mostly jinmeiyō) have **no vocabulary** because
-  JMdict has no common words for them — left empty by design, not padded.
+- **~175 kanji** (very rare characters, and kyūjitai/variant forms that only appear
+  in JMdict's search-only spellings) have **no vocabulary** because JMdict has no
+  displayable word for them — left empty by design, not padded.
 
 Works **offline** — the renderer and all stroke data are bundled in the repo.
 
@@ -131,10 +138,12 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
   auto-advance and the difficulty/scheduler tracking).
 - **Study order** sorts by grade then frequency (most common first), from full
   KANJIDIC2 data.
-- **Vocabulary** is now generated from **JMdict common words** for the whole set
-  (grouped ≥2 per reading, aiming ≥8 total where data supports), with the 14 core
-  kanji keeping their richer hand-authored lists. ~665 sparse/rare kanji have no
-  common JMdict words and are intentionally left without vocabulary.
+- **Vocabulary** is generated from the **full JMdict** for the whole set (grouped
+  ≥2 per common reading, aiming ≥8 total where data supports), with the 14 core
+  kanji keeping their richer hand-authored lists. Words are matched against **every
+  writing form** of a kanji (so variant/kyūjitai characters get their own words) and
+  ranked by commonness, with proper-noun/name senses filtered out. ~175 very rare
+  kanji have no displayable JMdict word and are intentionally left empty.
 - **Radicals** use the classifying **Kangxi radical glyph** (from KanjiVG's
   KANJIDIC-aligned tags) plus a **Japanese hiragana name** (e.g. 水 → さんずい);
   the radical filter groups by that glyph across the full set.

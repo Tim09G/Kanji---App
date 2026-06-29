@@ -37,10 +37,30 @@
 
   // G: vocabulary audio via the Web Speech API (Japanese TTS).
   window.Speak = (function () {
+    // Voices often load asynchronously, and on some platforms TTS stays silent
+    // unless an explicit ja voice is set (setting only `lang` isn't enough). Pick
+    // a Japanese voice once the list is available and refresh on `voiceschanged`.
+    var jaVoice = null;
+    function pickVoice() {
+      if (!window.speechSynthesis) return;
+      var vs = window.speechSynthesis.getVoices() || [];
+      if (!vs.length) return;
+      jaVoice = vs.filter(function (v) {
+        return /^ja\b/i.test(v.lang) || /ja[-_]/i.test(v.lang) || /japanese/i.test(v.name);
+      })[0] || jaVoice;
+    }
+    if (window.speechSynthesis) {
+      pickVoice();
+      if (window.speechSynthesis.addEventListener) {
+        window.speechSynthesis.addEventListener("voiceschanged", pickVoice);
+      }
+    }
     function speak(text) {
       if (!window.speechSynthesis) return;
+      if (!jaVoice) pickVoice();           // voices may have loaded since startup
       var u = new SpeechSynthesisUtterance(text);
       u.lang = "ja-JP"; u.rate = 0.9;
+      if (jaVoice) u.voice = jaVoice;
       window.speechSynthesis.cancel();
       window.speechSynthesis.speak(u);
     }
