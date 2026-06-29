@@ -78,9 +78,27 @@ mixing new and due characters behaves consistently.
 Progress is saved on your device (localStorage); the Home screen shows **total
 learned** and a tappable **due-for-review** count that updates live.
 
-### Sample set
-~104 kanji: the 14 hand-authored beginner kanji (with rich vocabulary) plus ~90
-more (JLPT N5/N4 by frequency) generated from an open KANJIDIC2-derived dataset.
+### Full kanji set
+**2,998 kanji**: every **jōyō** (2,136 regular-use) plus **jinmeiyō** (862
+name-use) character. Each one is generated from open data:
+- **Stroke order** from KanjiVG (HanziWriter format).
+- **Metadata** (meaning, on/kun readings, grade, JLPT, frequency rank, stroke
+  count, classifying radical) from KANJIDIC2.
+- **Vocabulary** from JMdict (common words), grouped ≥2 per reading and aiming for
+  ≥8 total **where the data supports it** — no padding. Sparser/rarer characters
+  (mostly jinmeiyō) may have few or no example words; that's expected.
+- **Radical & component highlighting** from KanjiVG, and a **"Similar to"** list
+  computed across the whole set by shared components.
+
+The 14 core beginner kanji keep their hand-authored vocabulary.
+
+**Known data gaps (flagged):**
+- **89 kanji** (e.g. compatibility-ideograph variants whose stroke count differs
+  from the standard KanjiVG glyph) get **no radical/component highlighting** — they
+  keep stroke data, metadata and vocab, but the highlight is omitted rather than
+  shown misaligned.
+- **~665 kanji** (sparse/rare, mostly jinmeiyō) have **no vocabulary** because
+  JMdict has no common words for them — left empty by design, not padded.
 
 Works **offline** — the renderer and all stroke data are bundled in the repo.
 
@@ -111,14 +129,15 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
   `runLearnSession` in the code.
 - **A "successful" quiz attempt** = completed with **zero mistakes** (drives the
   auto-advance and the difficulty/scheduler tracking).
-- **Study order** is the curated list order. Real ordering by JLPT / frequency
-  comes with full KANJIDIC2 data.
-- **Vocabulary** is hand-authored (~6–8 words) only for the 14 core kanji; the ~90
-  generated kanji have full metadata (meaning/readings/stroke/freq/radical) but no
-  vocabulary or similar-character lists yet. JMdict integration is a later phase.
-- **Radicals** use the dataset's WaniKani-style names (e.g. "Water") so the radical
-  filter groups consistently across all kanji; proper Kangxi radical glyphs come
-  with full KANJIDIC2 radical data.
+- **Study order** sorts by grade then frequency (most common first), from full
+  KANJIDIC2 data.
+- **Vocabulary** is now generated from **JMdict common words** for the whole set
+  (grouped ≥2 per reading, aiming ≥8 total where data supports), with the 14 core
+  kanji keeping their richer hand-authored lists. ~665 sparse/rare kanji have no
+  common JMdict words and are intentionally left without vocabulary.
+- **Radicals** use the classifying **Kangxi radical glyph** (from KanjiVG's
+  KANJIDIC-aligned tags) plus a **Japanese hiragana name** (e.g. 水 → さんずい);
+  the radical filter groups by that glyph across the full set.
 - **Home counts** show total-learned and due-for-review; a mastery-level breakdown
   is a planned future addition (TODO in `renderHome`).
 - **Stroke data is uniformly local KanjiVG** — verified all kanji have valid local
@@ -168,7 +187,8 @@ js/filters.js         Quiz filter/sort/shuffle "session builder"
 js/drawscreen.js      The shared "draw a character" screen + cue panel
 js/app.js             Screen router + Browse / Quiz / Learn controllers
 data/kanji-meta.js    Curated metadata + vocabulary for the 14 core kanji
-data/kanji-extra.js   Auto-generated metadata for ~90 more kanji (KANJIDIC2-derived)
+data/kanji-gen-1..4.js  Auto-generated metadata + vocab + similar for the full set
+                        (2,136 jōyō + 862 jinmeiyō), from KANJIDIC2 + JMdict
 data/kanji-components.js  Radical + component stroke groupings (from KanjiVG)
 data/kanji/*.json     Stroke-order data per kanji (KanjiVG → HanziWriter format)
 vendor/               The HanziWriter library (bundled so it works offline)
@@ -181,3 +201,7 @@ vendor/               The HanziWriter library (bundled so it works offline)
   [hanzi-writer-data-ja](https://github.com/mnako/hanzi-writer-data-ja).
 - Stroke rendering & quiz: [HanziWriter](https://hanziwriter.org/) (MIT,
   see `vendor/hanzi-writer.LICENSE`).
+- Kanji metadata & radicals: [KANJIDIC2](https://www.edrdg.org/wiki/index.php/KANJIDIC_Project)
+  (CC BY-SA 4.0, EDRDG).
+- Vocabulary & furigana: [JMdict / JMdict-simplified](https://github.com/scriptin/jmdict-simplified)
+  and [JmdictFurigana](https://github.com/Doublevil/JmdictFurigana) (EDRDG licence).
