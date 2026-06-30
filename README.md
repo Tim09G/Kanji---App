@@ -59,8 +59,8 @@ mixing new and due characters behaves consistently.
   - **Stroke count**, **Radical**.
   - **Similar to** — type/enter **any** kanji; filters to it and its
     visually/structurally similar characters.
-  - **Group** — an iOS-style **scroll-picker**: one wheel for block size (50/100/200)
-    and one to scroll between blocks.
+  - **Group** — an iOS-style **scroll-picker**: one wheel for block size (25/50/100/200)
+    and one to scroll between blocks (the blocks follow the active display order).
 - **Sort**: study order (JLPT), **ungrouped (plain list)**, **grade level**,
   frequency, fewest strokes, **most overdue**, **next due (soonest upcoming)**,
   **most failed** — or **Randomize** (review order).
@@ -99,6 +99,10 @@ mixing new and due characters behaves consistently.
     its audio** — there's no separate audio icon, and the tooltip never pushes the
     layout. The vocab list sits in a **fixed-height scroll box** so a word-rich kanji
     doesn't stretch the panel.
+  - The cue panel shows a **compact paired metadata block** (Frequency | JLPT,
+    Radical | Variants, then Strokes) above the vocabulary grid; identity-revealing
+    fields (Radical, Variants) stay blank until after you draw. The cue toggles
+    (Freq / Mean / Read / Vocab) sit on one compact row at the bottom of the panel.
   - **Radical & component highlights** (from KanjiVG): after drawing, the radical's
     strokes are coloured on the character and shown as **radical + Japanese name in
     hiragana**; for compound kanji each component is **hoverable**, showing its

@@ -69,7 +69,7 @@ window.DrawScreen = (function () {
   function renderCuePanel(char) {
     var settings = Store.getSettings().cues;
     els.cueSettings.innerHTML = "";
-    [["frequency", "Frequency"], ["meaning", "Meaning"], ["readings", "Readings"], ["vocab", "Vocabulary"]].forEach(function (pair) {
+    [["frequency", "Freq"], ["meaning", "Mean"], ["readings", "Read"], ["vocab", "Vocab"]].forEach(function (pair) {
       var label = document.createElement("label");
       label.className = "cue-toggle";
       var cb = document.createElement("input");
@@ -109,15 +109,6 @@ window.DrawScreen = (function () {
     root.innerHTML = "";
     if (!meta) return;
 
-    if (settings.frequency !== false && meta.freq) {
-      var fb = block("Frequency rank");
-      var fv = document.createElement("div");
-      fv.className = "cue-value";
-      fv.textContent = "#" + meta.freq + " most common";
-      fb.appendChild(fv);
-      root.appendChild(fb);
-    }
-
     if (settings.meaning !== false) {
       var mb = block("Meaning");
       var mv = document.createElement("div");
@@ -142,10 +133,32 @@ window.DrawScreen = (function () {
       root.appendChild(rb);
     }
 
+    // F: compact paired metadata — Freq|JLPT, Radical|Variants, then Strokes.
+    // Radical & Variants are identity hints, so they stay blank until post-draw.
+    var revealed = !!(task && task.vocabRevealed);
+    var radInfo = radicalOf(meta.char);
+    var metaBox = document.createElement("div"); metaBox.className = "info-meta cue-meta";
+    function imField(k, v, hidden, vClass) {
+      var f = document.createElement("div"); f.className = "im-field";
+      var ks = document.createElement("span"); ks.className = "im-k"; ks.textContent = k;
+      var vs = document.createElement("span"); vs.className = "im-v" + (vClass && !hidden ? " " + vClass : "");
+      vs.textContent = hidden ? "—" : v;
+      f.appendChild(ks); f.appendChild(vs); return f;
+    }
+    function imRow(fields) { var r = document.createElement("div"); r.className = "im-row"; fields.forEach(function (f) { r.appendChild(f); }); return r; }
+    var freqVal = (settings.frequency !== false && meta.freq && meta.freq < 99999) ? ("#" + meta.freq) : "—";
+    var jlptVal = meta.jlpt ? ("N" + meta.jlpt) : "—";
+    metaBox.appendChild(imRow([imField("Freq", freqVal), imField("JLPT", jlptVal)]));
+    var radVal = radInfo ? (radInfo.char + (radInfo.name ? "（" + radInfo.name + "）" : "")) : "—";
+    var vars = (window.KANJI_VARIANTS || {})[meta.char];
+    var varVal = vars && vars.length ? vars.map(function (v) { return v.char; }).join("、") : "—";
+    metaBox.appendChild(imRow([imField("Radical", radVal, !revealed, "radical-reveal"), imField("Variants", varVal, !revealed)]));
+    metaBox.appendChild(imRow([imField("Strokes", String(meta.strokeCount || "—"))]));
+    root.appendChild(metaBox);
+
     if (settings.vocab !== false && meta.vocab && meta.vocab.length) {
-      var vb = block("Vocabulary" + (task && task.vocabRevealed ? " (written form)" : ""));
-      // C3: keep the vocab list in a fixed-height, independently scrollable box so a
-      // kanji with many words doesn't grow the panel.
+      var vb = block("Vocabulary" + (revealed ? " (written form)" : ""));
+      // C3: fixed-height scrollable box; E: words laid out as a compact grid.
       var vsc = document.createElement("div"); vsc.className = "vocab-scroll";
       var groups = {};
       var order = [];
@@ -158,34 +171,12 @@ window.DrawScreen = (function () {
         rh.className = "vocab-reading";
         rh.textContent = reading;
         vsc.appendChild(rh);
-        groups[reading].forEach(function (w) {
-          vsc.appendChild(vocabItem(w));
-        });
+        var grid = document.createElement("div"); grid.className = "vocab-grid";
+        groups[reading].forEach(function (w) { grid.appendChild(vocabItem(w)); });
+        vsc.appendChild(grid);
       });
       vb.appendChild(vsc);
       root.appendChild(vb);
-    }
-
-    // After completing the character, reveal its radical: the radical character
-    // itself + its Japanese name in hiragana (C1), in a distinct colour.
-    var radInfo = radicalOf(meta.char);
-    if (task && task.vocabRevealed && radInfo) {
-      var radBlock = block("Radical");
-      var rv = document.createElement("div");
-      rv.className = "cue-value";
-      var rad = document.createElement("span");
-      rad.className = "radical-reveal";
-      rad.textContent = radInfo.char + (radInfo.name ? "（" + radInfo.name + "）" : "");
-      rv.appendChild(rad);
-      radBlock.appendChild(rv);
-      root.appendChild(radBlock);
-    }
-
-    if (!root.children.length) {
-      var empty = document.createElement("p");
-      empty.className = "cue-empty";
-      empty.textContent = "No cues selected.";
-      root.appendChild(empty);
     }
   }
 
@@ -202,29 +193,23 @@ window.DrawScreen = (function () {
     t.style.top = Math.round(r.bottom + 4) + "px";
   }
 
+  // E: returns a compact word chip (sits in a .vocab-grid), with the Phase 14
+  // tap/hover tooltip + audio behaviour.
   function vocabItem(w) {
-    var item = document.createElement("div");
-    item.className = "vocab-item";
     var revealed = task && task.vocabRevealed;
-
     var btn = document.createElement("button");
     btn.type = "button"; btn.className = "vocab-word" + (revealed ? " vocab-jp" : "");
     if (revealed) {
-      // After drawing: written (kanji) form; tooltip carries reading + English.
-      btn.textContent = w.jp;
+      btn.textContent = w.jp;                         // written (kanji) form
     } else {
-      // Before drawing: hiragana only, target-kanji portion in bold.
-      w.r.forEach(function (seg) {
+      w.r.forEach(function (seg) {                     // hiragana, target portion bold
         var span = document.createElement("span");
         span.textContent = seg.t;
         if (seg.b) span.className = "vocab-target";
         btn.appendChild(span);
       });
     }
-    // Post-draw tooltip shows reading + English; pre-draw shows English only
-    // (the reading is already on screen).
     var tipText = revealed ? (readingText(w) + " — " + w.en) : w.en;
-
     btn.addEventListener("mouseenter", function () { clearTimeout(vtipTimer); showVocabTip(tipText, btn); });
     btn.addEventListener("mouseleave", function () { hideTip(); });
     btn.addEventListener("click", function () {
@@ -233,8 +218,7 @@ window.DrawScreen = (function () {
       if (window.Speak) window.Speak.speak(w.jp);     // tap also plays audio
       vtipTimer = setTimeout(hideTip, 3000);          // auto-hide (for touch)
     });
-    item.appendChild(btn);
-    return item;
+    return btn;
   }
 
   // ===== start-point marker (level "start") =====

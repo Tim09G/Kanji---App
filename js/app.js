@@ -190,7 +190,7 @@
     $("browse-on").textContent = meta.on.join("、") || "—";
     $("browse-kun").textContent = meta.kun.join("、") || "—";
     $("browse-strokes").textContent = meta.strokeCount;
-    $("browse-freq").textContent = "#" + meta.freq;
+    $("browse-freq").textContent = (meta.freq && meta.freq < 99999) ? ("#" + meta.freq) : "—";
     $("browse-jlpt").textContent = meta.jlpt ? ("N" + meta.jlpt) : "—";
     $("browse-radical").textContent = radicalText(char);
     // F: alternate forms / radical-usage variants
@@ -374,6 +374,14 @@
     $("list-count").textContent = n + " selected";
     $("list-start").disabled = (n === 0 && newSliderVal() === 0);
   }
+  // Re-sync chip .selected classes from listSelected without rebuilding the grid
+  // (preserves section collapse/expand state — H/K).
+  function refreshChipSelection() {
+    Array.prototype.forEach.call($("list-grid").querySelectorAll(".select-chip"), function (chip) {
+      chip.classList.toggle("selected", !!listSelected[chip.dataset.char]);
+    });
+    updateListStart();
+  }
 
   // Filter values are tracked per screen (decoupled from input type) so selects, the
   // kanji text input (A) and the group scroll-picker (E) all read out uniformly.
@@ -445,7 +453,7 @@
 
     var grpWheel = null;
     function commit() { if (cb.checked && grpWheel) values[def.id] = { size: sizeWheel.value(), index: grpWheel.index() }; }
-    var sizeWheel = buildWheel([50, 100, 200], function (v) { return String(v); }, function () { rebuildGroups(); commit(); });
+    var sizeWheel = buildWheel([25, 50, 100, 200], function (v) { return String(v); }, function () { rebuildGroups(); commit(); });
     sizeSlot.appendChild(sizeCap); sizeSlot.appendChild(sizeWheel.el);
     grpSlot.appendChild(grpCap);
     function rebuildGroups() {
@@ -573,7 +581,7 @@
     var n = parseInt($("new-slider").value, 10) || 0;
     $("new-value").textContent = n;
     var avail = Store.nextNewChars(999);
-    $("new-preview").textContent = n > 0 ? ("next: " + Store.nextNewChars(n).join(" ")) : "(review only)";
+    $("new-preview").textContent = n > 0 ? ("next: " + Store.nextNewChars(n).join(" ")) : "";
     updateListStart();
   }
   function setupNewSlider() {
@@ -809,8 +817,10 @@
     $("list-sort").addEventListener("change", applySort);
     $("list-search").addEventListener("input", applySearch);
     $("new-slider").addEventListener("input", updateNewSlider);
-    $("list-all").addEventListener("click", function () { listVisible.forEach(function (c) { listSelected[c] = true; }); buildListGrid(); });
-    $("list-clear").addEventListener("click", function () { listSelected = {}; buildListGrid(); });
+    // H/K: Select All / Clear only change the selection — refresh chip state in
+    // place rather than rebuilding the grid (which would re-apply collapse state).
+    $("list-all").addEventListener("click", function () { listVisible.forEach(function (c) { listSelected[c] = true; }); refreshChipSelection(); });
+    $("list-clear").addEventListener("click", function () { listSelected = {}; refreshChipSelection(); });
     $("list-collapse-all").addEventListener("click", function () {
       listAllCollapsed = !listAllCollapsed;
       setAllSectionsCollapsed("list-grid", listAllCollapsed);

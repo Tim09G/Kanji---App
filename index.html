@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=19" />
+  <link rel="stylesheet" href="css/styles.css?v=21" />
 </head>
 <body>
   <header class="app-header">
@@ -75,12 +75,21 @@
             <dl class="readings">
               <dt>On (音)</dt><dd id="browse-on">—</dd>
               <dt>Kun (訓)</dt><dd id="browse-kun">—</dd>
-              <dt>Strokes</dt><dd id="browse-strokes">—</dd>
-              <dt>Frequency</dt><dd id="browse-freq">—</dd>
-              <dt>JLPT</dt><dd id="browse-jlpt">—</dd>
-              <dt>Radical</dt><dd id="browse-radical">—</dd>
-              <dt>Variants</dt><dd id="browse-variants">—</dd>
             </dl>
+            <!-- F: paired meta layout — Freq|JLPT, Radical|Variants, then Strokes. -->
+            <div class="info-meta">
+              <div class="im-row">
+                <div class="im-field"><span class="im-k">Frequency</span><span class="im-v" id="browse-freq">—</span></div>
+                <div class="im-field"><span class="im-k">JLPT</span><span class="im-v" id="browse-jlpt">—</span></div>
+              </div>
+              <div class="im-row">
+                <div class="im-field"><span class="im-k">Radical</span><span class="im-v" id="browse-radical">—</span></div>
+                <div class="im-field"><span class="im-k">Variants</span><span class="im-v" id="browse-variants">—</span></div>
+              </div>
+              <div class="im-row">
+                <div class="im-field"><span class="im-k">Strokes</span><span class="im-v" id="browse-strokes">—</span></div>
+              </div>
+            </div>
             <div class="browse-vocab">
               <div class="cue-label">Vocabulary</div>
               <div id="browse-vocab-list"></div>
@@ -96,7 +105,7 @@
           <select id="browse-sort" class="select-input"></select>
         </div>
         <details class="filter-box" id="browse-filter-box">
-          <summary>Filters <span class="filter-hint">(combine with AND)</span></summary>
+          <summary>Filters</summary>
           <div id="browse-filter-rows" class="filter-rows"></div>
           <div class="filter-actions">
             <button id="browse-filter-apply" class="btn btn-primary" type="button">Apply filters</button>
@@ -135,7 +144,7 @@
           <select id="list-sort" class="select-input"></select>
         </div>
         <details class="filter-box" id="filter-box">
-          <summary>Filters <span class="filter-hint">(combine with AND)</span></summary>
+          <summary>Filters</summary>
           <div id="filter-rows" class="filter-rows"></div>
           <div class="filter-actions">
             <button id="filter-apply" class="btn btn-primary" type="button">Apply filters</button>
@@ -157,18 +166,14 @@
         </div>
       </div>
 
-      <!-- A3: review order as a compact dropdown. -->
-      <div class="review-order-row">
-        <label for="review-order-select">Review order:</label>
-        <select id="review-order-select" class="select-input"></select>
-      </div>
-
       <p class="hint">Tap characters to include them, or use search/filters above.</p>
+      <!-- C: Review order moved into the button row, to the left of the count. -->
       <div class="select-toolbar">
         <button id="list-all" class="btn btn-ghost" type="button">Select all</button>
         <button id="list-clear" class="btn btn-ghost" type="button">Clear</button>
         <button id="list-collapse-all" class="btn btn-ghost" type="button">Collapse all</button>
         <span class="spacer"></span>
+        <label class="ro-inline">Review order: <select id="review-order-select" class="select-input ro-select"></select></label>
         <span id="list-count" class="count">0 selected</span>
       </div>
       <div id="list-grid" class="select-grid status-grid"></div>
@@ -201,9 +206,9 @@
         </div>
 
         <aside class="cue-panel">
-          <h3 class="cue-heading">Cues</h3>
-          <div id="cue-settings" class="cue-settings"></div>
           <div id="cue-content" class="cue-content"></div>
+          <!-- F: cue toggles moved to the bottom, compact single row. -->
+          <div id="cue-settings" class="cue-settings"></div>
         </aside>
       </div>
     </section>
@@ -240,16 +245,16 @@
 
   <script src="vendor/hanzi-writer.min.js"></script>
   <script src="vendor/ts-fsrs.umd.js"></script>
-  <script src="data/kanji-meta.js?v=19"></script>
-  <script src="data/kanji-gen-1.js?v=19"></script>
-  <script src="data/kanji-gen-2.js?v=19"></script>
-  <script src="data/kanji-gen-3.js?v=19"></script>
-  <script src="data/kanji-gen-4.js?v=19"></script>
-  <script src="data/kanji-components.js?v=19"></script>
-  <script src="js/store.js?v=19"></script>
-  <script src="js/scheduler.js?v=19"></script>
-  <script src="js/filters.js?v=19"></script>
-  <script src="js/drawscreen.js?v=19"></script>
-  <script src="js/app.js?v=19"></script>
+  <script src="data/kanji-meta.js?v=21"></script>
+  <script src="data/kanji-gen-1.js?v=21"></script>
+  <script src="data/kanji-gen-2.js?v=21"></script>
+  <script src="data/kanji-gen-3.js?v=21"></script>
+  <script src="data/kanji-gen-4.js?v=21"></script>
+  <script src="data/kanji-components.js?v=21"></script>
+  <script src="js/store.js?v=21"></script>
+  <script src="js/scheduler.js?v=21"></script>
+  <script src="js/filters.js?v=21"></script>
+  <script src="js/drawscreen.js?v=21"></script>
+  <script src="js/app.js?v=21"></script>
 </body>
 </html>

@@ -550,3 +550,49 @@ html, body {
 @media (max-width: 679px) {
   .study-area, .draw-layout { grid-template-columns: 1fr; }
 }
+
+/* ============ Phase 16 — polish pass ============ */
+
+/* A: collapsed Filters trigger matches the Display-order select height. */
+.controls-row .filter-box { padding: 0 0.8rem; }
+.controls-row .filter-box > summary { padding: 0.4rem 0; }
+
+/* C: review-order dropdown sits compactly in the button row. */
+.select-toolbar { flex-wrap: wrap; row-gap: 0.4rem; }
+.ro-inline { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.8rem; color: var(--muted); white-space: nowrap; }
+.ro-select { padding: 0.25rem 0.4rem; font-size: 0.85rem; border-radius: 8px; }
+
+/* D: New-kanji slider and search align cleanly as a 2-up grid (stack on phone). */
+.pair-row { display: grid; grid-template-columns: 1fr; gap: 0.5rem 1rem; align-items: center; margin-bottom: 0.55rem; }
+@media (min-width: 600px) { .pair-row { grid-template-columns: 1fr 1fr; } }
+.pair-row .search-row, .pair-row .slider-row { margin: 0; min-width: 0; }
+.slider-row { flex-wrap: nowrap; }
+.slider-row input[type="range"] { min-width: 0; }
+
+/* G: draw box — minimal side/bottom borders so the canvas dominates. */
+.draw-main { padding: 0.35rem 0.35rem 0.55rem; }
+.writer-target { max-width: 26rem; }
+.draw-prompt { margin: 0.5rem 0 0; }
+.draw-status { margin: 0.3rem 0 0; min-height: 1.2rem; }
+.controls { margin-top: 0.5rem; }
+
+/* F: paired metadata block (Browse info card + Study cue panel). */
+.info-meta { text-align: left; display: flex; flex-direction: column; gap: 0.25rem; margin: 0.5rem 0; }
+.cue-meta { margin: 0.4rem 0; }
+.im-row { display: flex; gap: 0.6rem; }
+.im-field {
+  flex: 1 1 0; min-width: 0; display: flex; align-items: baseline;
+  justify-content: space-between; gap: 0.4rem; border-bottom: 1px solid var(--line); padding: 0.12rem 0;
+}
+.im-k { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.02em; white-space: nowrap; }
+.im-v { font-size: 0.95rem; font-weight: 600; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.im-v.radical-reveal { color: #b3261e; }
+
+/* F: cue toggles — compact single row at the bottom of the cue panel. */
+.cue-settings {
+  gap: 0.3rem; flex-wrap: nowrap; justify-content: space-between;
+  font-size: 0.72rem; padding: 0.5rem 0 0; margin: 0.5rem 0 0;
+  border-top: 1px solid var(--line); border-bottom: none;
+}
+.cue-toggle { font-size: 0.72rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.15rem; }
+.cue-toggle input { margin: 0; }
