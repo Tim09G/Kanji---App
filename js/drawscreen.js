@@ -62,8 +62,17 @@ window.DrawScreen = (function () {
       return r.json();
     });
   }
+  // Flow line under the box (tap-to-continue / moving-on cues, load errors).
   function setPrompt(t) { els.prompt.textContent = t || ""; }
-  function setStatus(t, kind) { els.status.textContent = t || ""; els.status.className = "draw-status" + (kind ? " " + kind : ""); }
+  // H: the result badge on the buttons row. "good" -> green ✓, "bad" -> red ✗,
+  // empty -> nothing (while drawing). The text becomes the badge's tooltip/a11y label.
+  function setStatus(t, kind) {
+    var mark = kind === "good" ? "✓" : kind === "bad" ? "✗" : "";
+    els.status.textContent = mark;
+    els.status.className = "draw-result" + (kind ? " " + kind : "");
+    els.status.title = t || "";
+    els.status.setAttribute("aria-label", t || "");
+  }
 
   // ===== cue panel =====
   function renderCuePanel(char) {
@@ -120,16 +129,17 @@ window.DrawScreen = (function () {
     }
 
     if (settings.readings !== false) {
-      var rb = block("Readings (hiragana)");
+      // E: same labelled On/Kun rows as Browse (音（おん）/訓（くん）).
+      var rb = block("Readings");
       var on = (meta.on || []).map(kataToHira);
       var kun = (meta.kun || []).map(function (k) { return k.replace(/[.\-]/g, ""); });
-      var rv = document.createElement("div");
-      rv.className = "cue-value";
-      var parts = [];
-      if (on.length) parts.push("音 " + on.join("、"));
-      if (kun.length) parts.push("訓 " + kun.join("、"));
-      rv.textContent = parts.join("　");
-      rb.appendChild(rv);
+      var dl = document.createElement("dl"); dl.className = "readings";
+      var dtOn = document.createElement("dt"); dtOn.textContent = "音（おん）";
+      var ddOn = document.createElement("dd"); ddOn.textContent = on.length ? on.join("、") : "—";
+      var dtKun = document.createElement("dt"); dtKun.textContent = "訓（くん）";
+      var ddKun = document.createElement("dd"); ddKun.textContent = kun.length ? kun.join("、") : "—";
+      dl.appendChild(dtOn); dl.appendChild(ddOn); dl.appendChild(dtKun); dl.appendChild(ddKun);
+      rb.appendChild(dl);
       root.appendChild(rb);
     }
 
@@ -402,37 +412,51 @@ window.DrawScreen = (function () {
   }
 
   var tapArmTime = 0;
-  // Ignore clicks that land within 300ms of arming — that's the completing
-  // stroke's own mouseup firing a click, not a deliberate tap by the user.
+  // Ignore taps that land within 300ms of arming — that's the completing
+  // stroke's own mouseup/touchend, not a deliberate tap by the user.
   function freshTap() { return Date.now() - tapArmTime >= 300; }
+
+  // I: bind a tap handler for BOTH mouse and touch. On phones HanziWriter
+  // consumes the touch sequence, so the synthetic `click` often never fires —
+  // we listen for `touchend` directly and preventDefault to suppress the ghost
+  // click (so the handler runs exactly once per tap).
+  function bindTap(fn) {
+    disarmTap();
+    tapHandler = function (e) {
+      if (e && e.type === "touchend" && e.cancelable) e.preventDefault();
+      fn();
+    };
+    els.target.addEventListener("click", tapHandler);
+    els.target.addEventListener("touchend", tapHandler, { passive: false });
+  }
+  function disarmTap() {
+    if (tapHandler) {
+      els.target.removeEventListener("click", tapHandler);
+      els.target.removeEventListener("touchend", tapHandler);
+      tapHandler = null;
+    }
+  }
 
   function startAutoAdvance() {
     setPrompt("Moving on… (tap to pause)");
     advanceTimer = setTimeout(function () { advance(); }, AUTO_ADVANCE_MS);
     if (els.prior) els.prior.disabled = true;   // D: disabled during the countdown
-    disarmTap();
     tapArmTime = Date.now();
     // Tapping during the window cancels auto-advance and holds for an explicit tap (B5).
-    tapHandler = function () {
+    bindTap(function () {
       if (!freshTap()) return;
       if (advanceTimer) {
         clearTimeout(advanceTimer); advanceTimer = null;
         setPrompt("Paused — tap the character to continue.");
         armTap();
       }
-    };
-    els.target.addEventListener("click", tapHandler);
+    });
   }
 
   function armTap() {
-    disarmTap();
     tapArmTime = Date.now();
-    tapHandler = function () { if (freshTap()) advance(); };
-    els.target.addEventListener("click", tapHandler);
+    bindTap(function () { if (freshTap()) advance(); });
     if (els.prior) els.prior.disabled = !prevChar || inPrior;  // D: re-enabled when countdown cancelled / held
-  }
-  function disarmTap() {
-    if (tapHandler) { els.target.removeEventListener("click", tapHandler); tapHandler = null; }
   }
 
   function advance() {
@@ -492,9 +516,7 @@ window.DrawScreen = (function () {
       strokeData = data;
       buildReadOnly(pc, data);
     });
-    disarmTap();
-    tapHandler = function () { exitPriorView(); };
-    els.target.addEventListener("click", tapHandler);
+    bindTap(function () { exitPriorView(); });
   }
   function exitPriorView() {
     if (!inPrior) return;
@@ -514,7 +536,7 @@ window.DrawScreen = (function () {
     } else {
       // current not yet drawn — resume the quiz fresh
       hintShown = false;
-      setPrompt(promptFor(task.level));
+      setPrompt("");
       buildWriter(task.char, task.level);
       startQuiz(task.level);
       if (els.prior) els.prior.disabled = !prevChar;
@@ -532,7 +554,7 @@ window.DrawScreen = (function () {
     els.stepLabel.textContent = t.stepLabel || "";
     els.progressLabel.textContent = t.progressLabel || "";
     setStatus("");
-    setPrompt(promptFor(t.level));
+    setPrompt("");                      // H: nothing shown while drawing
     renderCuePanel(t.char);
     if (els.prior) els.prior.disabled = !prevChar;  // D: enabled if there is a previous character
 
@@ -541,17 +563,8 @@ window.DrawScreen = (function () {
       buildWriter(t.char, t.level);
       startQuiz(t.level);
     }).catch(function () {
-      setStatus("Couldn't load stroke data. Run via a local server (see README).", "bad");
+      setPrompt("Couldn't load stroke data. Run via a local server (see README).");
     });
-  }
-
-  function promptFor(level) {
-    switch (level) {
-      case "guided": return "Trace each highlighted stroke in order.";
-      case "order":  return "Draw it — work out the stroke order yourself.";
-      case "start":  return "Draw each stroke from the blue dot.";
-      default:       return "Draw this character from memory.";
-    }
   }
 
   // Abort the current task without advancing (used by the back button).

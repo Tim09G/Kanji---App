@@ -811,7 +811,7 @@
       var obj;
       try { obj = JSON.parse(reader.result); }
       catch (e) { alert("That file couldn't be read as a backup (invalid JSON). Nothing was changed."); return; }
-      if (!Store.validateBackup(obj)) { alert("That doesn't look like a Kanji Practice backup file. Nothing was changed."); return; }
+      if (!Store.validateBackup(obj)) { alert("That doesn't look like a Kanji Mastery backup file. Nothing was changed."); return; }
       var n = Object.keys(obj.data.progress || {}).length;
       if (!confirm("Importing this backup will OVERWRITE all current progress, schedules and settings on this device with the backup (" + n + " kanji" + (obj.exportedAt ? ", saved " + new Date(obj.exportedAt).toLocaleString() : "") + ").")) return;
       if (!confirm("Are you sure? Your current data will be replaced and this can't be undone.")) return;
@@ -883,7 +883,7 @@
       if (!text) { alert("No backup was found in your Google Drive yet."); return; }
       var obj;
       try { obj = JSON.parse(text); } catch (e) { alert("The cloud backup couldn't be read (invalid data)."); return; }
-      if (!Store.validateBackup(obj)) { alert("The cloud file isn't a recognised Kanji Practice backup."); return; }
+      if (!Store.validateBackup(obj)) { alert("The cloud file isn't a recognised Kanji Mastery backup."); return; }
       var n = Object.keys(obj.data.progress || {}).length;
       if (!confirm("Restoring from Google Drive will OVERWRITE all current progress and settings with the cloud backup (" + n + " kanji" + (obj.exportedAt ? ", saved " + new Date(obj.exportedAt).toLocaleString() : "") + ").")) return;
       if (!confirm("Are you sure? Your current data will be replaced and this can't be undone.")) return;
@@ -906,7 +906,7 @@
     registerScreens();
     DrawScreen.init({
       target: $("draw-target"), cueSettings: $("cue-settings"), cueContent: $("cue-content"),
-      prompt: $("draw-prompt"), status: $("draw-status"),
+      prompt: $("draw-status"), status: $("draw-result"),
       modeLabel: $("draw-mode"), stepLabel: $("draw-step"), progressLabel: $("draw-progress"),
       reveal: $("draw-reveal"), skip: $("draw-skip"), back: $("draw-back"), prior: $("draw-prior"),
     }, { onBack: exitSession });

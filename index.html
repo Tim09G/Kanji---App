@@ -2,20 +2,23 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Kanji Practice</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Kanji Mastery</title>
+  <meta name="theme-color" content="#2f6fed" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Kanji Mastery" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=25" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;rect width='100' height='100' rx='20' fill='%232f6fed'/&gt;&lt;text x='50' y='52' font-size='64' text-anchor='middle' dominant-baseline='central' fill='white'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
+  <link rel="stylesheet" href="css/styles.css?v=26" />
 </head>
 <body>
-  <header class="app-header">
-    <h1>漢字 Kanji Practice</h1>
-  </header>
-
   <main class="app-main">
 
     <!-- ============ HOME ============ -->
     <section id="screen-home" class="screen active">
+      <!-- F: app name shown on the Home screen only. -->
+      <h1 class="home-title">漢字 Kanji Mastery</h1>
       <p class="home-counts" id="home-counts">—</p>
       <!-- A: mastery-level breakdown (counts per FSRS-derived level). -->
       <div class="mastery-grid" id="home-mastery"></div>
@@ -88,14 +91,10 @@
 
     <!-- ============ BROWSE ============ -->
     <section id="screen-browse" class="screen">
-      <div class="screen-bar">
-        <button class="btn btn-ghost" data-home type="button">← Home</button>
-        <h2>Browse</h2>
-      </div>
-
-      <!-- G: kanji display box + info panel at the very top. -->
+      <!-- A: heading removed; Home is a small floating button over the kanji box. -->
       <div class="study-area">
         <div class="writer-column">
+          <button class="box-nav-btn" data-home type="button" aria-label="Home">← Home</button>
           <div id="browse-target" class="writer-target"></div>
           <div class="controls">
             <button id="browse-animate" class="btn btn-primary" type="button">▶ Animate</button>
@@ -103,11 +102,15 @@
         </div>
         <aside class="info-column">
           <div class="info-card">
-            <div class="info-char" id="browse-char">水</div>
-            <div class="info-meaning" id="browse-meaning">water</div>
+            <!-- D: kanji + meaning side by side, smaller. -->
+            <div class="info-head">
+              <div class="info-char" id="browse-char">水</div>
+              <div class="info-meaning" id="browse-meaning">water</div>
+            </div>
+            <!-- C: reading labels in Japanese, no romaji. -->
             <dl class="readings">
-              <dt>On (音)</dt><dd id="browse-on">—</dd>
-              <dt>Kun (訓)</dt><dd id="browse-kun">—</dd>
+              <dt>音（おん）</dt><dd id="browse-on">—</dd>
+              <dt>訓（くん）</dt><dd id="browse-kun">—</dd>
             </dl>
             <!-- F: paired meta layout — Freq|JLPT, Radical|Variants, then Strokes. -->
             <div class="info-meta">
@@ -163,9 +166,10 @@
 
     <!-- ============ SHARED LIST (Study: review + new) ============ -->
     <section id="screen-list" class="screen">
-      <div class="screen-bar">
-        <button class="btn btn-ghost" data-back="auto" type="button">← Back</button>
-        <h2 id="list-title">Review</h2>
+      <!-- A: compact nav — small back button, no big heading row. -->
+      <div class="compact-bar">
+        <button class="box-nav-btn box-nav-static" data-back="auto" type="button">← Back</button>
+        <span id="list-title" class="compact-title">Review</span>
       </div>
 
       <button id="list-due-banner" class="due-banner due-banner-btn" type="button"></button>
@@ -206,8 +210,11 @@
         <button id="list-clear" class="btn btn-ghost" type="button">Clear</button>
         <button id="list-collapse-all" class="btn btn-ghost" type="button">Collapse all</button>
         <span class="spacer"></span>
-        <label class="ro-inline">Review order: <select id="review-order-select" class="select-input ro-select"></select></label>
-        <span id="list-count" class="count">0 selected</span>
+        <!-- G: keep order dropdown + counter together; counter never wraps. -->
+        <div class="ro-group">
+          <label class="ro-inline">Review order: <select id="review-order-select" class="select-input ro-select"></select></label>
+          <span id="list-count" class="count">0 selected</span>
+        </div>
       </div>
       <div id="list-grid" class="select-grid status-grid"></div>
 
@@ -218,8 +225,9 @@
 
     <!-- ============ DRAW (shared by Review + Learn) ============ -->
     <section id="screen-draw" class="screen">
-      <div class="screen-bar">
-        <button id="draw-back" class="btn btn-ghost" type="button">← Back</button>
+      <!-- A: heading row removed; Back floats over the box. Mode/step/progress
+           sit in one slim line. -->
+      <div class="compact-bar draw-compact">
         <span class="draw-mode" id="draw-mode">Review</span>
         <span class="draw-step" id="draw-step"></span>
         <span class="spacer"></span>
@@ -228,13 +236,16 @@
 
       <div class="draw-layout">
         <div class="draw-main">
+          <button id="draw-back" class="box-nav-btn" type="button" aria-label="Back">← Back</button>
           <div id="draw-target" class="writer-target"></div>
-          <p class="draw-prompt" id="draw-prompt"></p>
+          <!-- H: instruction text removed; only flow cues live here. -->
           <p class="draw-status" id="draw-status" role="status" aria-live="polite"></p>
           <div class="controls">
             <button id="draw-prior" class="btn btn-ghost" type="button" disabled>◀ Prior kanji</button>
             <button id="draw-reveal" class="btn btn-ghost" type="button">Show answer</button>
             <button id="draw-skip" class="btn btn-ghost" type="button">Skip</button>
+            <!-- H: ✓/✗ result badge — green = correct, red = miss, empty while drawing. -->
+            <span id="draw-result" class="draw-result" aria-live="polite"></span>
           </div>
         </div>
 
@@ -281,17 +292,17 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="vendor/hanzi-writer.min.js"></script>
   <script src="vendor/ts-fsrs.umd.js"></script>
-  <script src="data/kanji-meta.js?v=25"></script>
-  <script src="data/kanji-gen-1.js?v=25"></script>
-  <script src="data/kanji-gen-2.js?v=25"></script>
-  <script src="data/kanji-gen-3.js?v=25"></script>
-  <script src="data/kanji-gen-4.js?v=25"></script>
-  <script src="data/kanji-components.js?v=25"></script>
-  <script src="js/store.js?v=25"></script>
-  <script src="js/scheduler.js?v=25"></script>
-  <script src="js/clouddrive.js?v=25"></script>
-  <script src="js/filters.js?v=25"></script>
-  <script src="js/drawscreen.js?v=25"></script>
-  <script src="js/app.js?v=25"></script>
+  <script src="data/kanji-meta.js?v=26"></script>
+  <script src="data/kanji-gen-1.js?v=26"></script>
+  <script src="data/kanji-gen-2.js?v=26"></script>
+  <script src="data/kanji-gen-3.js?v=26"></script>
+  <script src="data/kanji-gen-4.js?v=26"></script>
+  <script src="data/kanji-components.js?v=26"></script>
+  <script src="js/store.js?v=26"></script>
+  <script src="js/scheduler.js?v=26"></script>
+  <script src="js/clouddrive.js?v=26"></script>
+  <script src="js/filters.js?v=26"></script>
+  <script src="js/drawscreen.js?v=26"></script>
+  <script src="js/app.js?v=26"></script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+{
+  "name": "Kanji Mastery",
+  "short_name": "Kanji Mastery",
+  "description": "Practice kanji: stroke order, readings, meanings, vocabulary, and spaced-repetition review.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6f7f9",
+  "theme_color": "#2f6fed",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-maskable.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

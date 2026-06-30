@@ -42,6 +42,27 @@ html, body {
 .screen-bar h2 { margin: 0; font-size: 1.2rem; }
 .screen-bar .spacer { flex: 1; }
 
+/* A: home title only on the home screen now. */
+.home-title { text-align: center; margin: 0.5rem 0 0.25rem; font-size: 1.6rem; }
+
+/* A: small floating nav button overlaid on the top-left corner of a kanji box. */
+.box-nav-btn {
+  position: absolute; top: 0.5rem; left: 0.5rem; z-index: 5;
+  font: inherit; font-size: 0.8rem; line-height: 1;
+  padding: 0.3rem 0.55rem; border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink); cursor: pointer;
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+.box-nav-btn:hover { background: rgba(255, 255, 255, 0.95); border-color: var(--accent); }
+/* A: compact nav row for screens with no kanji box (e.g. the list). */
+.compact-bar { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.75rem; }
+.compact-title { font-weight: 700; font-size: 1.05rem; }
+.box-nav-static { position: static; }
+.draw-compact { font-size: 0.9rem; }
+.draw-compact .spacer { flex: 1; }
+
 .hint { color: var(--muted); font-size: 0.95rem; margin-top: 0; }
 
 /* ---- buttons ---- */
@@ -139,6 +160,7 @@ html, body {
 .study-area { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
 @media (min-width: 680px) { .study-area { grid-template-columns: 1.1fr 0.9fr; align-items: start; } }
 .writer-column {
+  position: relative;
   background: var(--card); border: 1px solid var(--line);
   border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 1.25rem; display: flex; flex-direction: column; align-items: center;
@@ -149,8 +171,10 @@ html, body {
   border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 1.25rem; width: 100%; text-align: center;
 }
-.info-char { font-size: 3.5rem; line-height: 1; }
-.info-meaning { font-size: 1.2rem; font-weight: 600; margin: 0.5rem 0 1rem; }
+/* D: kanji + meaning side by side, smaller. */
+.info-head { display: flex; align-items: baseline; justify-content: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
+.info-char { font-size: 2.4rem; line-height: 1; }
+.info-meaning { font-size: 1.05rem; font-weight: 600; margin: 0; }
 .readings { display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem; text-align: left; margin: 0; }
 .readings dt { color: var(--muted); font-size: 0.85rem; padding-top: 0.15rem; }
 .readings dd { margin: 0; font-size: 1.05rem; }
@@ -158,6 +182,9 @@ html, body {
 /* ============ SELECTION (Quiz) ============ */
 .select-toolbar { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
 .select-toolbar .spacer { flex: 1; }
+/* G: order dropdown + counter stay on one line; the counter never wraps. */
+.ro-group { display: inline-flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+.ro-group .count { white-space: nowrap; }
 .count { color: var(--muted); font-size: 0.9rem; }
 .select-grid {
   display: grid; gap: 0.5rem;
@@ -187,14 +214,16 @@ html, body {
 .draw-layout { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
 @media (min-width: 720px) { .draw-layout { grid-template-columns: 1fr 0.85fr; align-items: start; } }
 .draw-main {
+  position: relative;
   background: var(--card); border: 1px solid var(--line);
   border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 1.25rem; display: flex; flex-direction: column; align-items: center;
 }
-.draw-prompt { margin: 0.9rem 0 0; text-align: center; font-weight: 600; }
-.draw-status { margin: 0.4rem 0 0; min-height: 1.4rem; text-align: center; color: var(--muted); }
-.draw-status.good { color: var(--good); font-weight: 600; }
-.draw-status.bad { color: var(--bad); }
+.draw-status { margin: 0.5rem 0 0; min-height: 1.2rem; text-align: center; color: var(--muted); font-size: 0.9rem; }
+/* H: ✓/✗ result badge that lives on the buttons row. */
+.draw-result { font-size: 1.4rem; font-weight: 700; line-height: 1; min-width: 1.4rem; text-align: center; }
+.draw-result.good { color: var(--good); }
+.draw-result.bad { color: var(--bad); }
 
 /* cue panel */
 .cue-panel {
@@ -473,7 +502,8 @@ html, body {
 .done-missed-kanji { font-size: 1.5rem; color: var(--bad); }
 
 /* browse vocab list (F) */
-.browse-vocab { margin-top: 1rem; text-align: left; border-top: 1px solid var(--line); padding-top: 0.75rem; }
+/* B: tighten the gap between Strokes and Vocabulary. */
+.browse-vocab { margin-top: 0.5rem; text-align: left; border-top: 1px solid var(--line); padding-top: 0.5rem; }
 .browse-vocab .vocab-item { margin: 0.3rem 0; }
 .browse-vocab .vocab-jp { font-weight: 600; }
 /* D: compact, side-by-side word chips that reveal reading/English on tap/hover. */
@@ -577,9 +607,10 @@ html, body {
 /* G: draw box — minimal side/bottom borders so the canvas dominates. */
 .draw-main { padding: 0.35rem 0.35rem 0.55rem; }
 .writer-target { max-width: 26rem; }
-.draw-prompt { margin: 0.5rem 0 0; }
-.draw-status { margin: 0.3rem 0 0; min-height: 1.2rem; }
+.draw-status { margin: 0.3rem 0 0; min-height: 1.1rem; }
 .controls { margin-top: 0.5rem; }
+/* A: keep the floating nav button clear of the tighter mobile padding. */
+.box-nav-btn { top: 0.35rem; left: 0.35rem; }
 
 /* F: paired metadata block (Browse info card + Study cue panel). */
 .info-meta { text-align: left; display: flex; flex-direction: column; gap: 0.25rem; margin: 0.5rem 0; }

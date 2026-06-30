@@ -1,4 +1,4 @@
-# 漢字 Kanji Practice (PWA) — work in progress
+# 漢字 Kanji Mastery (PWA) — work in progress
 
 A personal web app for practicing kanji: stroke order, readings, meanings,
 vocabulary, and (later) spaced-repetition review with flexible filtering.
@@ -82,7 +82,9 @@ mixing new and due characters behaves consistently.
   organises the Browse picker; section headers here are visual labels, each with a
   collapse arrow plus a **Collapse all / Expand all** button above the list.
 - The **kanji display + info panel sit at the top**, with the order/filter/search
-  controls and the kanji picker below.
+  controls and the kanji picker below. A small **floating Home button** sits over the
+  kanji box (no heading row). The kanji and its meaning sit **side by side** at a
+  compact size, and readings are labelled **音（おん）/訓（くん）** (no romaji).
 - **Component hover**: hovering a recognisable component of the displayed kanji shows
   its meaning and main readings (the same system as the draw screen). On Browse the
   radical is *not* specially highlighted — component info only.
@@ -112,10 +114,18 @@ mixing new and due characters behaves consistently.
 
 ### The draw screen (shared by Learn & Review)
 - The kanji is **never shown** while you draw — only your own strokes appear.
-- A **back button** returns you to the list/menu you came from.
+- A small **floating back button** (top-left of the draw box) returns you to the
+  list/menu you came from; there's no separate heading row taking up space.
+- **No instruction text** clutters the box while you draw. When a character is
+  finished a compact **result badge** appears on the buttons row — a green **✓** for a
+  clean pass, a red **✗** for a miss (nothing shows while you're still drawing).
+- After a correct answer the screen **auto-advances after ~1s**; **tapping the box**
+  pauses that countdown (and tapping again continues). This tap works by **touch** on
+  phones, not just mouse clicks.
 - A **cue panel** with toggleable hints (remembered between sessions): Frequency
-  rank, Meaning, Readings (hiragana), and Vocabulary (grouped by reading; ≥2 per
-  reading and ≥8 total where the data has them).
+  rank, Meaning, Readings, and Vocabulary (grouped by reading; ≥2 per reading and ≥8
+  total where the data has them). Readings use the same labelled **音（おん）/訓（くん）**
+  rows as the Browse screen (hiragana, no romaji).
   - Before you draw, vocab is shown **in hiragana** with the quizzed kanji's portion
     in **bold**; after you finish, the written form is shown. **Tapping (or hovering)
     a vocabulary word** shows its reading/English in a floating tooltip **and plays
@@ -288,6 +298,19 @@ a stable HTTPS address. The simplest free option, since it's already a GitHub re
 
 (The repo includes a `.nojekyll` file so Pages serves the `data/` files as-is.)
 The app uses only relative paths, so it works correctly under that sub-folder URL.
+
+### Installing it to your home screen
+
+There's a `manifest.webmanifest` + app icons, so once it's on HTTPS you can use
+**Share → Add to Home Screen** (iOS Safari) or the browser's **Install** prompt
+(Android/desktop Chrome). It then opens full-screen like a normal app.
+
+**About updates / caching:** the app has **no service worker**, so it never caches
+itself offline — every visit loads the current files from the server, and all asset
+links carry a `?v=NN` version tag that's bumped on each release to defeat stale
+browser caching. In short, there's no "stuck on an old version" problem to manage. (A
+network-first service worker for true offline use can be added later if wanted; it
+isn't needed for the current online use.)
 
 ---
 
