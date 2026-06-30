@@ -85,6 +85,20 @@ mixing new and due characters behaves consistently.
   controls and the kanji picker below.
 
 ### ⚙️ Settings
+- **Backup & restore** (data portability):
+  - **Export data** downloads a single dated JSON file (e.g.
+    `kanji-app-backup-2026-06-30.json`) containing all local data — per-kanji FSRS
+    state (stability, due, lapses…), Learn progress, and settings. Keep it anywhere
+    (cloud, email, USB) to guard against losing the device or having storage cleared.
+  - **Import data** restores from a backup file, behind the same **two-confirmation**
+    warning as Reset; the file is validated (app/version marker + structure) and a bad
+    file is rejected with a clear message instead of corrupting anything. A safety
+    auto-backup of the current state is taken right before importing.
+  - **Automatic local backups** run with no action needed — at startup, **after every
+    study session**, and every few hours — keeping the **last 3** snapshots in a
+    separate storage slot. **Restore latest automatic backup** (also two-confirm)
+    recovers from in-app corruption or an accidental reset. *(Local-only — it doesn't
+    protect against the device/storage being wiped; that's what Export is for.)*
 - **Reset progress** lives here now, behind **two confirmations**.
 
 ### The draw screen (shared by Learn & Review)

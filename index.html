@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=22" />
+  <link rel="stylesheet" href="css/styles.css?v=23" />
 </head>
 <body>
   <header class="app-header">
@@ -46,6 +46,21 @@
         <button class="btn btn-ghost" data-home type="button">← Home</button>
         <h2>Settings</h2>
       </div>
+      <!-- Phase 18: data portability -->
+      <div class="settings-group">
+        <h3>Backup &amp; restore</h3>
+        <p class="hint">Your progress, schedules and review history live only on this
+          device. <strong>Export a backup file</strong> and keep it somewhere safe
+          (cloud drive, email, USB) so you can restore it here or on another device.</p>
+        <div class="settings-actions">
+          <button id="export-data" class="btn btn-primary" type="button">⬇ Export data</button>
+          <button id="import-data" class="btn" type="button">⬆ Import data…</button>
+          <input id="import-file" type="file" accept="application/json,.json" hidden />
+        </div>
+        <p class="hint" id="autobackup-info">Automatic backups: none yet.</p>
+        <button id="restore-auto" class="btn btn-ghost" type="button">Restore latest automatic backup</button>
+      </div>
+
       <div class="settings-group">
         <h3>Progress</h3>
         <p class="hint">Erase all learning progress, schedules and stats stored on this device.</p>
@@ -245,16 +260,16 @@
 
   <script src="vendor/hanzi-writer.min.js"></script>
   <script src="vendor/ts-fsrs.umd.js"></script>
-  <script src="data/kanji-meta.js?v=22"></script>
-  <script src="data/kanji-gen-1.js?v=22"></script>
-  <script src="data/kanji-gen-2.js?v=22"></script>
-  <script src="data/kanji-gen-3.js?v=22"></script>
-  <script src="data/kanji-gen-4.js?v=22"></script>
-  <script src="data/kanji-components.js?v=22"></script>
-  <script src="js/store.js?v=22"></script>
-  <script src="js/scheduler.js?v=22"></script>
-  <script src="js/filters.js?v=22"></script>
-  <script src="js/drawscreen.js?v=22"></script>
-  <script src="js/app.js?v=22"></script>
+  <script src="data/kanji-meta.js?v=23"></script>
+  <script src="data/kanji-gen-1.js?v=23"></script>
+  <script src="data/kanji-gen-2.js?v=23"></script>
+  <script src="data/kanji-gen-3.js?v=23"></script>
+  <script src="data/kanji-gen-4.js?v=23"></script>
+  <script src="data/kanji-components.js?v=23"></script>
+  <script src="js/store.js?v=23"></script>
+  <script src="js/scheduler.js?v=23"></script>
+  <script src="js/filters.js?v=23"></script>
+  <script src="js/drawscreen.js?v=23"></script>
+  <script src="js/app.js?v=23"></script>
 </body>
 </html>

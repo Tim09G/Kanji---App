@@ -17,6 +17,10 @@ window.Store = (function () {
 
   var PROGRESS_KEY = "kanji.progress.v1";
   var SETTINGS_KEY = "kanji.settings.v1";
+  var AUTOBACKUP_KEY = "kanji.autobackup.v1";
+  var BACKUP_APP = "kanji-practice";
+  var BACKUP_VERSION = 1;
+  var MAX_AUTO = 3;   // keep the last few automatic backups
 
   var DEFAULT_SETTINGS = {
     cues: { frequency: true, meaning: true, readings: true, vocab: true },
@@ -113,6 +117,50 @@ window.Store = (function () {
     try { localStorage.removeItem(PROGRESS_KEY); } catch (e) {}
   }
 
+  // ---- Backup / restore (Phase 18) ----
+  // A snapshot is the full set of locally-persisted data (progress incl. FSRS state,
+  // and settings). Export wraps it in an envelope with an app/version marker.
+  function snapshot() {
+    return { progress: readJSON(PROGRESS_KEY, {}), settings: readJSON(SETTINGS_KEY, null) };
+  }
+  function exportData() {
+    return { app: BACKUP_APP, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), data: snapshot() };
+  }
+  // A valid backup is from this app and carries a progress object.
+  function validateBackup(obj) {
+    return !!(obj && typeof obj === "object" && obj.app === BACKUP_APP &&
+      obj.data && typeof obj.data === "object" &&
+      obj.data.progress && typeof obj.data.progress === "object");
+  }
+  function applyData(data) {
+    if (data && data.progress && typeof data.progress === "object") writeJSON(PROGRESS_KEY, data.progress);
+    if (data && data.settings && typeof data.settings === "object") writeJSON(SETTINGS_KEY, data.settings);
+  }
+  // Overwrite live data from a validated export envelope. Returns true on success.
+  function importData(obj) {
+    if (!validateBackup(obj)) return false;
+    applyData(obj.data);
+    return true;
+  }
+
+  // Automatic local backups: a rolling list (newest first), distinct from live data.
+  function autoBackups() { var s = readJSON(AUTOBACKUP_KEY, []); return Array.isArray(s) ? s : []; }
+  function autoBackup() {
+    var snaps = autoBackups();
+    var cur = snapshot();
+    // skip if nothing changed since the most recent snapshot (don't churn the slots)
+    if (snaps.length && JSON.stringify(snaps[0].data) === JSON.stringify(cur)) return false;
+    snaps.unshift({ at: new Date().toISOString(), data: cur });
+    writeJSON(AUTOBACKUP_KEY, snaps.slice(0, MAX_AUTO));
+    return true;
+  }
+  function restoreAuto() {
+    var snaps = autoBackups();
+    if (!snaps.length) return false;
+    applyData(snaps[0].data);
+    return true;
+  }
+
   return {
     getSettings: getSettings,
     setCue: setCue,
@@ -126,5 +174,11 @@ window.Store = (function () {
     reviewPool: reviewPool,
     counts: counts,
     resetAll: resetAll,
+    exportData: exportData,
+    importData: importData,
+    validateBackup: validateBackup,
+    autoBackup: autoBackup,
+    autoBackups: autoBackups,
+    restoreAuto: restoreAuto,
   };
 })();

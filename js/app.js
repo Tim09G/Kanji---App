@@ -765,6 +765,7 @@
 
     $("done-back").onclick = function () { returnToScreen(cfg.returnScreen); };
     renderHome();
+    Store.autoBackup();   // C: back up after every completed study session
     show("screen-done");
   }
 
@@ -774,6 +775,54 @@
     var rs = activeReturnScreen;
     activeSession = null;
     returnToScreen(rs || "screen-home");
+  }
+
+  // ================= backup / restore (Phase 18) =================
+  function openSettings() { refreshAutobackupInfo(); show("screen-settings"); }
+  function refreshAutobackupInfo() {
+    var snaps = Store.autoBackups();
+    var info = $("autobackup-info"), btn = $("restore-auto");
+    if (!snaps.length) { info.textContent = "Automatic backups: none yet."; btn.disabled = true; return; }
+    btn.disabled = false;
+    info.textContent = "Automatic backups: " + snaps.length + " kept · latest " + new Date(snaps[0].at).toLocaleString();
+  }
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function exportBackup() {
+    var blob = new Blob([JSON.stringify(Store.exportData(), null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var d = new Date();
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "kanji-app-backup-" + d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate()) + ".json";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  }
+  function importBackupFile(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      var obj;
+      try { obj = JSON.parse(reader.result); }
+      catch (e) { alert("That file couldn't be read as a backup (invalid JSON). Nothing was changed."); return; }
+      if (!Store.validateBackup(obj)) { alert("That doesn't look like a Kanji Practice backup file. Nothing was changed."); return; }
+      var n = Object.keys(obj.data.progress || {}).length;
+      if (!confirm("Importing this backup will OVERWRITE all current progress, schedules and settings on this device with the backup (" + n + " kanji" + (obj.exportedAt ? ", saved " + new Date(obj.exportedAt).toLocaleString() : "") + ").")) return;
+      if (!confirm("Are you sure? Your current data will be replaced and this can't be undone.")) return;
+      Store.autoBackup();        // snapshot current state first, just in case
+      Store.importData(obj);
+      renderHome(); refreshAutobackupInfo();
+      alert("Backup imported — your progress has been restored.");
+    };
+    reader.readAsText(file);
+  }
+  function restoreAutoBackup() {
+    var snaps = Store.autoBackups();
+    if (!snaps.length) { alert("There are no automatic backups yet."); return; }
+    var when = new Date(snaps[0].at).toLocaleString();
+    if (!confirm("Restore the latest automatic backup (" + when + ")? This will OVERWRITE your current progress and settings.")) return;
+    if (!confirm("Are you sure? Your current data will be replaced and this can't be undone.")) return;
+    Store.restoreAuto();
+    renderHome(); refreshAutobackupInfo();
+    alert("Restored from the latest automatic backup.");
   }
 
   // ================= wiring =================
@@ -792,7 +841,7 @@
 
     $("nav-browse").addEventListener("click", openBrowse);
     $("nav-study").addEventListener("click", function () { openList("Study", "screen-home"); });
-    $("nav-settings").addEventListener("click", function () { show("screen-settings"); });
+    $("nav-settings").addEventListener("click", openSettings);
     $("home-due").addEventListener("click", function () { if (!$("home-due").disabled) startDueReview("screen-home", Filters.DEFAULT_SORT); });
 
     Array.prototype.forEach.call(document.querySelectorAll("[data-home]"), function (b) { b.addEventListener("click", goHome); });
@@ -809,6 +858,15 @@
       if (!confirm("Are you sure? This permanently erases your progress and cannot be undone.")) return;
       Store.resetAll(); renderHome(); alert("Progress has been reset.");
     });
+
+    // Phase 18: backup / restore
+    $("export-data").addEventListener("click", exportBackup);
+    $("import-data").addEventListener("click", function () { $("import-file").click(); });
+    $("import-file").addEventListener("change", function () {
+      if (this.files && this.files[0]) importBackupFile(this.files[0]);
+      this.value = "";   // allow re-selecting the same file later
+    });
+    $("restore-auto").addEventListener("click", restoreAutoBackup);
 
     $("browse-animate").addEventListener("click", function () { if (browseWriter) browseWriter.animateCharacter(); });
     $("browse-search").addEventListener("input", browseSearch);
@@ -840,6 +898,11 @@
 
     renderHome();
     show("screen-home");
+
+    // C: automatic local backups — one at startup, then periodically (every 3h) as a
+    // safety net for long sessions. (A backup also runs after every study session.)
+    Store.autoBackup();
+    setInterval(function () { Store.autoBackup(); }, 3 * 60 * 60 * 1000);
   }
 
   document.addEventListener("DOMContentLoaded", init);
