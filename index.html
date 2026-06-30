@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=16" />
+  <link rel="stylesheet" href="css/styles.css?v=18" />
 </head>
 <body>
   <header class="app-header">
@@ -86,20 +86,22 @@
         </aside>
       </div>
 
-      <!-- C: same display-order + filter system as the Study list. -->
-      <div class="order-bar">
-        <label for="browse-sort"><strong>Display order</strong></label>
-        <select id="browse-sort" class="select-input"></select>
-      </div>
-      <details class="filter-box" id="browse-filter-box">
-        <summary>Filters <span class="filter-hint">(combine with AND)</span></summary>
-        <div id="browse-filter-rows" class="filter-rows"></div>
-        <div class="filter-actions">
-          <button id="browse-filter-apply" class="btn btn-primary" type="button">Apply filters</button>
-          <button id="browse-filter-reset" class="btn btn-ghost" type="button">Reset filters</button>
-          <span id="browse-filter-match" class="count"></span>
+      <!-- C/A2: display order + filters share one row on wide screens. -->
+      <div class="controls-row">
+        <div class="order-bar">
+          <label for="browse-sort"><strong>Display order</strong></label>
+          <select id="browse-sort" class="select-input"></select>
         </div>
-      </details>
+        <details class="filter-box" id="browse-filter-box">
+          <summary>Filters <span class="filter-hint">(combine with AND)</span></summary>
+          <div id="browse-filter-rows" class="filter-rows"></div>
+          <div class="filter-actions">
+            <button id="browse-filter-apply" class="btn btn-primary" type="button">Apply filters</button>
+            <button id="browse-filter-reset" class="btn btn-ghost" type="button">Reset filters</button>
+            <span id="browse-filter-match" class="count"></span>
+          </div>
+        </details>
+      </div>
 
       <!-- G: search below the filters. -->
       <div class="search-row">
@@ -123,38 +125,40 @@
 
       <button id="list-due-banner" class="due-banner due-banner-btn" type="button"></button>
 
-      <!-- Display order (select-screen only); Random not offered here (A). -->
-      <div class="order-bar">
-        <label for="list-sort"><strong>Display order</strong></label>
-        <select id="list-sort" class="select-input"></select>
-      </div>
-
-      <details class="filter-box" id="filter-box">
-        <summary>Filters <span class="filter-hint">(combine with AND)</span></summary>
-        <div id="filter-rows" class="filter-rows"></div>
-        <div class="filter-actions">
-          <button id="filter-apply" class="btn btn-primary" type="button">Apply filters</button>
-          <button id="filter-reset" class="btn btn-ghost" type="button">Reset filters</button>
-          <span id="filter-match" class="count"></span>
+      <!-- A2: display order + filters share one row on wide screens (stack on phone). -->
+      <div class="controls-row">
+        <div class="order-bar">
+          <label for="list-sort"><strong>Display order</strong></label>
+          <select id="list-sort" class="select-input"></select>
         </div>
-      </details>
-
-      <!-- F: search now sits below the filters. -->
-      <div class="search-row">
-        <input id="list-search" type="search" placeholder="Search kanji, reading (romaji) or meaning…" />
+        <details class="filter-box" id="filter-box">
+          <summary>Filters <span class="filter-hint">(combine with AND)</span></summary>
+          <div id="filter-rows" class="filter-rows"></div>
+          <div class="filter-actions">
+            <button id="filter-apply" class="btn btn-primary" type="button">Apply filters</button>
+            <button id="filter-reset" class="btn btn-ghost" type="button">Reset filters</button>
+            <span id="filter-match" class="count"></span>
+          </div>
+        </details>
       </div>
 
-      <!-- F: New-kanji slider + Review order moved above the list and button row. -->
-      <div class="slider-row">
-        <label for="new-slider">New kanji to add: <output id="new-value" class="slider-value">0</output></label>
-        <input type="range" id="new-slider" min="0" max="50" value="0" />
-        <span id="new-preview" class="hint"></span>
+      <!-- A4: search shares a row with the new-kanji slider (stack on phone). -->
+      <div class="pair-row">
+        <div class="search-row">
+          <input id="list-search" type="search" placeholder="Search kanji, reading (romaji) or meaning…" />
+        </div>
+        <div class="slider-row">
+          <label for="new-slider">New kanji to add: <output id="new-value" class="slider-value">0</output></label>
+          <input type="range" id="new-slider" min="0" max="50" value="0" />
+          <span id="new-preview" class="hint"></span>
+        </div>
       </div>
 
-      <fieldset class="review-order">
-        <legend>Review order (during the session)</legend>
-        <div id="review-order-options" class="ro-options"></div>
-      </fieldset>
+      <!-- A3: review order as a compact dropdown. -->
+      <div class="review-order-row">
+        <label for="review-order-select">Review order:</label>
+        <select id="review-order-select" class="select-input"></select>
+      </div>
 
       <p class="hint">Tap characters to include them, or use search/filters above.</p>
       <div class="select-toolbar">
@@ -233,16 +237,16 @@
 
   <script src="vendor/hanzi-writer.min.js"></script>
   <script src="vendor/ts-fsrs.umd.js"></script>
-  <script src="data/kanji-meta.js?v=16"></script>
-  <script src="data/kanji-gen-1.js?v=16"></script>
-  <script src="data/kanji-gen-2.js?v=16"></script>
-  <script src="data/kanji-gen-3.js?v=16"></script>
-  <script src="data/kanji-gen-4.js?v=16"></script>
-  <script src="data/kanji-components.js?v=16"></script>
-  <script src="js/store.js?v=16"></script>
-  <script src="js/scheduler.js?v=16"></script>
-  <script src="js/filters.js?v=16"></script>
-  <script src="js/drawscreen.js?v=16"></script>
-  <script src="js/app.js?v=16"></script>
+  <script src="data/kanji-meta.js?v=18"></script>
+  <script src="data/kanji-gen-1.js?v=18"></script>
+  <script src="data/kanji-gen-2.js?v=18"></script>
+  <script src="data/kanji-gen-3.js?v=18"></script>
+  <script src="data/kanji-gen-4.js?v=18"></script>
+  <script src="data/kanji-components.js?v=18"></script>
+  <script src="js/store.js?v=18"></script>
+  <script src="js/scheduler.js?v=18"></script>
+  <script src="js/filters.js?v=18"></script>
+  <script src="js/drawscreen.js?v=18"></script>
+  <script src="js/app.js?v=18"></script>
 </body>
 </html>

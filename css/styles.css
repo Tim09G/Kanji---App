@@ -371,7 +371,6 @@ html, body {
 /* C: collapse/expand-all bar (Browse). */
 .list-bar { display: flex; align-items: center; gap: 0.5rem; margin: 0.25rem 0 0.6rem; }
 .status-grid .select-chip {
-.status-grid .select-chip {
   aspect-ratio: auto; display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 0.5rem 0.25rem 0.45rem;
 }
@@ -454,3 +453,67 @@ html, body {
 /* ============ footer ============ */
 .app-footer { text-align: center; color: var(--muted); font-size: 0.8rem; padding: 1.5rem 1rem 2rem; }
 .app-footer a { color: var(--muted); }
+
+/* ============ Phase 14 — UI density & responsive layout ============ */
+
+/* A1: quiet inline text when nothing is due (vs the actionable banner). */
+.due-banner-empty {
+  background: transparent; border: none; box-shadow: none;
+  color: var(--muted); padding: 0.15rem 0; margin-bottom: 0.4rem; font-size: 0.85rem;
+}
+
+/* A2: display order + filters share one row on wide screens, stack on phone. */
+.controls-row { display: flex; flex-wrap: wrap; gap: 0.5rem 0.75rem; align-items: flex-start; margin-bottom: 0.55rem; }
+.controls-row .order-bar { margin-bottom: 0; flex: 0 0 auto; }
+.controls-row .filter-box { margin-bottom: 0; flex: 1 1 320px; }
+
+/* A4: search shares a row with the new-kanji slider, stack on phone. */
+.pair-row { display: flex; flex-wrap: wrap; gap: 0.4rem 1rem; align-items: center; margin-bottom: 0.55rem; }
+.pair-row .search-row, .pair-row .slider-row { margin: 0; flex: 1 1 260px; min-width: 0; }
+
+/* A3: review order as a compact inline dropdown. */
+.review-order-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.55rem; font-size: 0.9rem; color: var(--muted); }
+.review-order-row label { white-space: nowrap; }
+.review-order-row select { flex: 0 1 auto; }
+
+/* A5: tighten general spacing in this top section. */
+.order-bar { margin-bottom: 0; }
+.select-toolbar { margin-bottom: 0.4rem; flex-wrap: wrap; }
+#screen-list .hint, #screen-browse .hint { margin: 0.3rem 0; }
+
+/* B: tighter filter panel — smaller label↔control and row↔row gaps. */
+.filter-rows { gap: 0.35rem 0.75rem; margin: 0.5rem 0; }
+.filter-row { gap: 0.1rem; }
+.filter-opt-hint { min-height: 0; }
+.filter-box { padding: 0.4rem 0.8rem; margin-bottom: 0; }
+
+/* E1: floating Start button pinned to the bottom of the viewport. */
+#screen-list .screen-actions {
+  position: sticky; bottom: 0; z-index: 6;
+  margin: 0.5rem 0 0; padding: 0.6rem 0 0.7rem; text-align: center;
+  background: linear-gradient(to top, var(--bg) 62%, rgba(246,247,249,0));
+}
+#screen-list .screen-actions .btn-primary { min-width: 12rem; }
+
+/* F: reclaim border/padding for a bigger drawable canvas (esp. phone widths). */
+.writer-target { width: 100%; max-width: 23rem; height: auto; aspect-ratio: 1 / 1; margin: 0 auto; }
+.draw-main { padding: 0.7rem; }
+.writer-column { padding: 0.7rem; }
+
+/* C3: vocabulary lists scroll inside a fixed height so the panel stays stable. */
+.vocab-scroll { max-height: 13rem; overflow-y: auto; overflow-x: hidden; padding-right: 2px; }
+#browse-vocab-list { max-height: 13rem; overflow-y: auto; }
+
+/* C: compact vocab entries (tooltip is the body-level .component-tip on hover/tap). */
+.vocab-item { margin: 0.1rem 0; }
+
+/* C4: tighten cue label↔value and cue settings spacing. */
+.cue-block { margin-bottom: 0.6rem; }
+.cue-label { margin-bottom: 0.05rem; }
+.cue-settings { gap: 0.5rem; padding-bottom: 0.5rem; margin-bottom: 0.5rem; }
+.cue-panel { padding: 0.9rem; }
+
+/* Phone width: ensure the draw box + info/cue panels stack full-width (D). */
+@media (max-width: 679px) {
+  .study-area, .draw-layout { grid-template-columns: 1fr; }
+}

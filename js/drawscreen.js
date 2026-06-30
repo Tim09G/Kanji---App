@@ -144,7 +144,9 @@ window.DrawScreen = (function () {
 
     if (settings.vocab !== false && meta.vocab && meta.vocab.length) {
       var vb = block("Vocabulary" + (task && task.vocabRevealed ? " (written form)" : ""));
-      // group by the kanji's reading used
+      // C3: keep the vocab list in a fixed-height, independently scrollable box so a
+      // kanji with many words doesn't grow the panel.
+      var vsc = document.createElement("div"); vsc.className = "vocab-scroll";
       var groups = {};
       var order = [];
       meta.vocab.forEach(function (w) {
@@ -155,11 +157,12 @@ window.DrawScreen = (function () {
         var rh = document.createElement("div");
         rh.className = "vocab-reading";
         rh.textContent = reading;
-        vb.appendChild(rh);
+        vsc.appendChild(rh);
         groups[reading].forEach(function (w) {
-          vb.appendChild(vocabItem(w));
+          vsc.appendChild(vocabItem(w));
         });
       });
+      vb.appendChild(vsc);
       root.appendChild(vb);
     }
 
@@ -188,38 +191,49 @@ window.DrawScreen = (function () {
 
   function readingText(w) { return w.r.map(function (s) { return s.t; }).join(""); }
 
+  // C1/C2: a transient floating tooltip (the body-level tip element, so it isn't
+  // clipped by the scrollable vocab box) shown on hover and on tap; tap also plays
+  // audio. No permanent inline gloss, no persistent audio icon.
+  var vtipTimer = null;
+  function showVocabTip(text, btn) {
+    var t = ensureTip(); t.textContent = text; t.hidden = false;
+    var r = btn.getBoundingClientRect();
+    t.style.left = Math.round(r.left) + "px";
+    t.style.top = Math.round(r.bottom + 4) + "px";
+  }
+
   function vocabItem(w) {
     var item = document.createElement("div");
     item.className = "vocab-item";
-    if (window.Speak) item.appendChild(window.Speak.speakButton(w.jp)); // G: audio
+    var revealed = task && task.vocabRevealed;
 
-    if (task && task.vocabRevealed) {
-      // After drawing: written form shown; hiragana reading + English hidden
-      // until tapped (same hidden-until-interacted pattern as before drawing).
-      var jbtn = document.createElement("button");
-      jbtn.type = "button"; jbtn.className = "vocab-word vocab-jp"; jbtn.textContent = w.jp;
-      jbtn.title = readingText(w) + " — " + w.en;
-      var g2 = document.createElement("span");
-      g2.className = "vocab-gloss"; g2.textContent = "（" + readingText(w) + "） — " + w.en; g2.hidden = true;
-      jbtn.addEventListener("click", function () { g2.hidden = !g2.hidden; });
-      item.appendChild(jbtn); item.appendChild(g2);
-      return item;
-    }
-
-    // Before drawing: hiragana only, target-kanji portion in bold; tap for English.
     var btn = document.createElement("button");
-    btn.type = "button"; btn.className = "vocab-word";
-    w.r.forEach(function (seg) {
-      var span = document.createElement("span");
-      span.textContent = seg.t;
-      if (seg.b) span.className = "vocab-target";
-      btn.appendChild(span);
+    btn.type = "button"; btn.className = "vocab-word" + (revealed ? " vocab-jp" : "");
+    if (revealed) {
+      // After drawing: written (kanji) form; tooltip carries reading + English.
+      btn.textContent = w.jp;
+    } else {
+      // Before drawing: hiragana only, target-kanji portion in bold.
+      w.r.forEach(function (seg) {
+        var span = document.createElement("span");
+        span.textContent = seg.t;
+        if (seg.b) span.className = "vocab-target";
+        btn.appendChild(span);
+      });
+    }
+    // Post-draw tooltip shows reading + English; pre-draw shows English only
+    // (the reading is already on screen).
+    var tipText = revealed ? (readingText(w) + " — " + w.en) : w.en;
+
+    btn.addEventListener("mouseenter", function () { clearTimeout(vtipTimer); showVocabTip(tipText, btn); });
+    btn.addEventListener("mouseleave", function () { hideTip(); });
+    btn.addEventListener("click", function () {
+      clearTimeout(vtipTimer);
+      showVocabTip(tipText, btn);
+      if (window.Speak) window.Speak.speak(w.jp);     // tap also plays audio
+      vtipTimer = setTimeout(hideTip, 3000);          // auto-hide (for touch)
     });
-    btn.title = w.en;
-    var gloss = document.createElement("span");
-    gloss.className = "vocab-gloss"; gloss.textContent = " — " + w.en; gloss.hidden = true;
-    btn.addEventListener("click", function () { gloss.hidden = !gloss.hidden; });
-    item.appendChild(btn); item.appendChild(gloss);
+    item.appendChild(btn);
     return item;
   }
 
@@ -296,11 +310,19 @@ window.DrawScreen = (function () {
     g.appendChild(ov);
   }
 
+  // F: size the canvas to the (responsive) box so the reduced border/padding gives
+  // a bigger drawable area, especially on phone widths.
+  function measureSize() {
+    var w = els.target.getBoundingClientRect().width;
+    return w >= 200 ? Math.round(w) : SIZE;
+  }
+
   // ===== writer + quiz =====
   function buildWriter(char, level) {
     els.target.innerHTML = "";
+    var size = measureSize();
     writer = HanziWriter.create(els.target, char, {
-      width: SIZE, height: SIZE, padding: PAD,
+      width: size, height: size, padding: PAD,
       showCharacter: false,
       showOutline: (level === "guided" || level === "order"),
       outlineColor: FAINT,
@@ -435,8 +457,9 @@ window.DrawScreen = (function () {
   // ===== Prior kanji (D): read-only peek at the previous character =====
   function buildReadOnly(char, data) {
     els.target.innerHTML = "";
+    var size = measureSize();
     writer = HanziWriter.create(els.target, char, {
-      width: SIZE, height: SIZE, padding: PAD, showCharacter: true, showOutline: false,
+      width: size, height: size, padding: PAD, showCharacter: true, showOutline: false,
       strokeColor: "#1f2933", charDataLoader: function (c, cb) { cb(data); },
     });
     applyHighlights(char);

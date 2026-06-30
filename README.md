@@ -38,7 +38,8 @@ mixing new and due characters behaves consistently.
     are untouched).
   - Each header has a **collapse/expand arrow** (just left of the count), and a
     **Collapse all / Expand all** button sits with Select-all / Clear. Headers stay
-    sticky as you scroll.
+    sticky as you scroll. **Sections start collapsed** so the whole list is scannable
+    at a glance.
   - The **Group** filter's blocks now follow the **active display order** (so under
     Study order/JLPT, "block 1 of 50" is the first 50 N5 kanji; under Grade, the
     first 50 by grade; etc.).
@@ -65,6 +66,10 @@ mixing new and due characters behaves consistently.
   **most failed** — or **Randomize** (review order).
 - Starting a session handles each character by its status: new ones get the
   scaffolding, known ones get reviewed — mixed together.
+- **Dense, responsive top controls**: display-order + filters share a row, search
+  pairs with the new-kanji slider, and review order is a compact dropdown — all
+  stacking to one-per-row on phone widths. The **Start button floats at the bottom**
+  of the screen so it's always reachable.
 
 ### 👁 Browse — full per-kanji reference
 - Search (typed) + **brisk** animated stroke order, with the full info panel: readings,
@@ -87,14 +92,20 @@ mixing new and due characters behaves consistently.
   rank, Meaning, Readings (hiragana), and Vocabulary (grouped by reading; ≥2 per
   reading and ≥8 total where the data has them).
   - Before you draw, vocab is shown **in hiragana** with the quizzed kanji's portion
-    in **bold**; after you finish, the written form is shown with the hiragana
-    reading and English **hidden until tapped**.
+    in **bold**; after you finish, the written form is shown. **Tapping (or hovering)
+    a vocabulary word** shows its reading/English in a floating tooltip **and plays
+    its audio** — there's no separate audio icon, and the tooltip never pushes the
+    layout. The vocab list sits in a **fixed-height scroll box** so a word-rich kanji
+    doesn't stretch the panel.
   - **Radical & component highlights** (from KanjiVG): after drawing, the radical's
     strokes are coloured on the character and shown as **radical + Japanese name in
     hiragana**; for compound kanji each component is **hoverable**, showing its
     meaning and two main readings.
-- **Vocabulary audio** (🔊) plays each example word (Web Speech API). It selects an
-  installed Japanese system voice and waits for voices to finish loading, so playback
+- The **draw box has a thin border so the canvas is as large as possible**, and the
+  draw box + cue panel **stack vertically on phone widths** (side by side on desktop).
+- **Vocabulary audio** plays each example word (Web Speech API) — on the draw screen
+  via the tap interaction above; Browse keeps an explicit 🔊 button for now. It selects
+  an installed Japanese system voice and waits for voices to finish loading, so playback
   is reliable on browsers that load TTS voices asynchronously. (If your device has no
   Japanese voice installed, the OS may substitute a default voice or stay silent —
   that's a system-voice setting, not the app.)

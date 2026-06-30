@@ -180,8 +180,10 @@
     // F: full vocabulary list (with audio)
     renderBrowseVocab(meta);
     $("browse-target").innerHTML = "";
+    var bw = $("browse-target").getBoundingClientRect().width;
+    var bsize = bw >= 200 ? Math.round(bw) : 300;
     browseWriter = HanziWriter.create($("browse-target"), char, {
-      width: 300, height: 300, padding: 5, showCharacter: true, showOutline: true,
+      width: bsize, height: bsize, padding: 5, showCharacter: true, showOutline: true,
       strokeColor: "#1f2933", outlineColor: "#e2e6ea",
       // B: brisker stroke animation (defaults of 1x speed / 1s between strokes drag).
       strokeAnimationSpeed: 2, delayBetweenStrokes: 250,
@@ -217,7 +219,7 @@
     buildBrowseSortOptions();
     buildFilterRows($("browse-filter-rows"), browseFilterValues);
     $("browse-filter-match").textContent = "";
-    browseAllCollapsed = false; $("browse-collapse-all").textContent = "Collapse all";
+    browseAllCollapsed = true; $("browse-collapse-all").textContent = "Expand all";   // E2: collapsed by default
     refreshBrowse(allChars());
     browseSelect(META[0].char);
     show("screen-browse");
@@ -491,20 +493,17 @@
       .forEach(function (id) { var o = document.createElement("option"); o.value = id; o.textContent = Filters.SORTS[id].label; sel.appendChild(o); });
     sel.value = "study";
   }
-  // Review order (during the session) — single-select radios incl Random (default).
+  // Review order (during the session) — compact dropdown (A3); Random is default.
   function buildReviewOrder() {
-    var wrap = $("review-order-options"); wrap.innerHTML = "";
+    var sel = $("review-order-select"); sel.innerHTML = "";
     Object.keys(Filters.SORTS).filter(function (id) { return id !== "ungrouped"; }).forEach(function (id) {
-      var lab = document.createElement("label"); lab.className = "ro-opt";
-      var inp = document.createElement("input"); inp.type = "radio"; inp.name = "review-order"; inp.value = id;
-      if (id === Filters.DEFAULT_SORT) inp.checked = true;
-      lab.appendChild(inp); lab.appendChild(document.createTextNode(" " + Filters.SORTS[id].label));
-      wrap.appendChild(lab);
+      var o = document.createElement("option"); o.value = id; o.textContent = Filters.SORTS[id].label; sel.appendChild(o);
     });
+    sel.value = Filters.DEFAULT_SORT;
   }
   function reviewOrder() {
-    var r = document.querySelector('input[name="review-order"]:checked');
-    return r ? r.value : Filters.DEFAULT_SORT;
+    var s = $("review-order-select");
+    return s && s.value ? s.value : Filters.DEFAULT_SORT;
   }
 
   // --- search (D / F) — shared by the Study list and Browse ---
@@ -547,8 +546,14 @@
   function renderListDue() {
     var due = Scheduler.dueChars();
     var b = $("list-due-banner");
-    if (due.length) { b.hidden = false; b.disabled = false; b.textContent = "🔔 " + due.length + " due for review — tap to review them"; }
-    else { b.hidden = false; b.disabled = true; b.textContent = "No characters are due for review right now."; }
+    // A1: prominent actionable banner when something is due; quiet inline text otherwise.
+    if (due.length) {
+      b.hidden = false; b.disabled = false; b.classList.remove("due-banner-empty");
+      b.textContent = "🔔 " + due.length + " due for review — tap to review them";
+    } else {
+      b.hidden = false; b.disabled = true; b.classList.add("due-banner-empty");
+      b.textContent = "Nothing due for review right now.";
+    }
   }
 
   function openList(title, openedFrom) {
@@ -558,7 +563,7 @@
     $("filter-match").textContent = "";
     $("list-search").value = "";
     listSelected = {};
-    listAllCollapsed = false; $("list-collapse-all").textContent = "Collapse all";
+    listAllCollapsed = true; $("list-collapse-all").textContent = "Expand all";   // E2: collapsed by default
     listVisible = Filters.sortChars(allChars(), "study");
     renderListDue(); buildListGrid();
     show("screen-list");
