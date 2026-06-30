@@ -596,3 +596,16 @@ html, body {
 }
 .cue-toggle { font-size: 0.72rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.15rem; }
 .cue-toggle input { margin: 0; }
+
+/* ============ Phase 17 — slider loop + Browse centering ============ */
+
+/* B: center the rendered SVG within the writer box (defensive — works even if a
+   measurement is ever off, e.g. on first paint). */
+.writer-target { display: flex; align-items: center; justify-content: center; }
+
+/* A: stack the slider's label / track / preview so the track width depends only on
+   the (stable) grid cell — never on the preview text length — breaking the
+   value→layout→value feedback loop. */
+.slider-row { display: flex; flex-direction: column; align-items: stretch; gap: 0.2rem; flex-wrap: nowrap; }
+.slider-row input[type="range"] { width: 100%; min-width: 0; flex: none; }
+#new-preview { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }

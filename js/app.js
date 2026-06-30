@@ -261,8 +261,11 @@
     $("browse-filter-match").textContent = "";
     browseAllCollapsed = true; $("browse-collapse-all").textContent = "Expand all";   // E2: collapsed by default
     refreshBrowse(allChars());
-    browseSelect(META[0].char);
+    // B: show the screen BEFORE selecting the first kanji, so the writer-target has
+    // its final rendered width when browseSelect measures it (otherwise it's measured
+    // at display:none → 0 → falls back to 300px and renders left-of-centre).
     show("screen-browse");
+    browseSelect(META[0].char);
   }
   function buildBrowseSortOptions() {
     var sel = $("browse-sort"); if (sel.options.length) return;   // build once
@@ -580,8 +583,14 @@
   function updateNewSlider() {
     var n = parseInt($("new-slider").value, 10) || 0;
     $("new-value").textContent = n;
-    var avail = Store.nextNewChars(999);
-    $("new-preview").textContent = n > 0 ? ("next: " + Store.nextNewChars(n).join(" ")) : "";
+    // A: keep the preview short and on its own (truncating) line so its width can
+    // never reflow the slider's track mid-drag.
+    if (n > 0) {
+      var nx = Store.nextNewChars(n);
+      $("new-preview").textContent = "next: " + nx.slice(0, 8).join(" ") + (nx.length > 8 ? " …" : "");
+    } else {
+      $("new-preview").textContent = "";
+    }
     updateListStart();
   }
   function setupNewSlider() {
