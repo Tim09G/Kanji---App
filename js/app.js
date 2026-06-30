@@ -207,7 +207,15 @@
       strokeColor: "#1f2933", outlineColor: "#e2e6ea",
       // B: brisker stroke animation (defaults of 1x speed / 1s between strokes drag).
       strokeAnimationSpeed: 2, delayBetweenStrokes: 250,
-      charDataLoader: function (c, done) { fetch("data/kanji/" + encodeURIComponent(c) + ".json").then(function (r) { return r.json(); }).then(done); },
+      charDataLoader: function (c, done) {
+        fetch("data/kanji/" + encodeURIComponent(c) + ".json").then(function (r) { return r.json(); }).then(function (d) {
+          done(d);
+          // Phase 19: component hover (no radical highlight) — only if still current.
+          if (c === browseChar && window.DrawScreen && DrawScreen.componentHover) {
+            DrawScreen.componentHover($("browse-target"), c, d);
+          }
+        });
+      },
     });
   }
   // D: floating tooltip for Browse vocab (body-level so the scroll box can't clip it;

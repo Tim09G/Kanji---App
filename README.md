@@ -83,6 +83,9 @@ mixing new and due characters behaves consistently.
   collapse arrow plus a **Collapse all / Expand all** button above the list.
 - The **kanji display + info panel sit at the top**, with the order/filter/search
   controls and the kanji picker below.
+- **Component hover**: hovering a recognisable component of the displayed kanji shows
+  its meaning and main readings (the same system as the draw screen). On Browse the
+  radical is *not* specially highlighted — component info only.
 
 ### ⚙️ Settings
 - **Backup & restore** (data portability):

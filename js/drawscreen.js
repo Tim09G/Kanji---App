@@ -294,6 +294,30 @@ window.DrawScreen = (function () {
     g.appendChild(ov);
   }
 
+  // Phase 19: reusable component-only hover for any HanziWriter target (e.g. Browse).
+  // Same component hit-regions + tooltip as Study, but NO radical highlight (per scope).
+  // `sd` is the kanji's stroke data (the data/kanji/<char>.json object).
+  function componentHover(targetEl, char, sd, attempt) {
+    var data = componentsOf(char);
+    if (!targetEl || !data || !sd || !sd.strokes) return;
+    var g = targetEl.querySelector("svg > g");
+    if (!g) { if ((attempt || 0) < 20) requestAnimationFrame(function () { componentHover(targetEl, char, sd, (attempt || 0) + 1); }); return; }
+    var old = targetEl.querySelector(".hl-overlay"); if (old) old.parentNode.removeChild(old);
+    var ov = document.createElementNS(SVGNS, "g"); ov.setAttribute("class", "hl-overlay");
+    (data.components || []).forEach(function (cmp) {
+      var hit = [];
+      cmp.strokes.forEach(function (i) { if (sd.strokes[i]) { var pp = ovPath(sd.strokes[i], "transparent", true); ov.appendChild(pp); hit.push(pp); } });
+      var tip = "<strong>" + cmp.char + "</strong>" + (cmp.meaning ? " — " + cmp.meaning : "") +
+                (cmp.readings && cmp.readings.length ? "<br>" + cmp.readings.join("、") : "");
+      hit.forEach(function (q) {
+        q.addEventListener("mouseenter", function (e) { hit.forEach(function (z) { z.setAttribute("fill", HOVER_COLOR); }); showTip(tip, e.clientX, e.clientY); });
+        q.addEventListener("mousemove", function (e) { moveTip(e.clientX, e.clientY); });
+        q.addEventListener("mouseleave", function () { hit.forEach(function (z) { z.setAttribute("fill", "transparent"); }); hideTip(); });
+      });
+    });
+    g.appendChild(ov);
+  }
+
   // F: size the canvas to the (responsive) box so the reduced border/padding gives
   // a bigger drawable area, especially on phone widths.
   function measureSize() {
@@ -548,5 +572,5 @@ window.DrawScreen = (function () {
     if (els.prior) els.prior.addEventListener("click", onPrior);
   }
 
-  return { init: init, run: run, stop: stop };
+  return { init: init, run: run, stop: stop, componentHover: componentHover };
 })();
