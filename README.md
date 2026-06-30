@@ -102,6 +102,12 @@ mixing new and due characters behaves consistently.
     separate storage slot. **Restore latest automatic backup** (also two-confirm)
     recovers from in-app corruption or an accidental reset. *(Local-only — it doesn't
     protect against the device/storage being wiped; that's what Export is for.)*
+  - **Cloud backup (Google Drive)** — optional. Once connected (one-time setup,
+    below), every automatic backup *also* uploads to a hidden app-folder in **your own
+    Google Drive**, so your data survives losing the device. Cloud writes are
+    best-effort: if you're offline they fail silently and retry on the next trigger —
+    the local backup always happens regardless. **Restore from Google Drive** is in
+    Settings, behind the same two-confirmation warning. See the setup guide below.
 - **Reset progress** lives here now, behind **two confirmations**.
 
 ### The draw screen (shared by Learn & Review)
@@ -266,6 +272,51 @@ npx serve .
 then open the URL it prints.
 
 Press `Ctrl + C` to stop the server.
+
+---
+
+## 🌐 Hosting it on GitHub Pages (for phone use + cloud backup)
+
+To use the app on your phone and to enable Google Drive cloud backup, serve it from
+a stable HTTPS address. The simplest free option, since it's already a GitHub repo:
+
+1. In the repo on GitHub → **Settings → Pages**.
+2. Under **Build and deployment**, set **Source = Deploy from a branch**, pick your
+   branch (e.g. `main`) and folder **/ (root)**, then **Save**.
+3. After a minute it'll publish at `https://<your-user>.github.io/<repo>/`
+   (for this repo: `https://tim09g.github.io/Kanji---App/`).
+
+(The repo includes a `.nojekyll` file so Pages serves the `data/` files as-is.)
+The app uses only relative paths, so it works correctly under that sub-folder URL.
+
+---
+
+## ☁️ Cloud backup (Google Drive) setup
+
+This is a **one-time** setup so the app can back up to a hidden folder in **your own**
+Google Drive (no backend, no fees — it uses your Drive). You'll create a free Google
+**OAuth Client ID** and paste it into Settings.
+
+1. Go to **[console.cloud.google.com](https://console.cloud.google.com/)** and create
+   a project (any name).
+2. **APIs & Services → Library** → search **Google Drive API** → **Enable**.
+3. **APIs & Services → OAuth consent screen** → choose **External** → fill the
+   required app name / email → add **yourself as a Test user**. (You can leave it in
+   "Testing" mode; you don't need Google to verify the app for personal use.)
+4. **APIs & Services → Credentials → Create credentials → OAuth client ID** →
+   Application type **Web application**. Under **Authorized JavaScript origins** add
+   the exact address you serve the app from (e.g. `https://tim09g.github.io` and, for
+   local testing, `http://localhost:8000`). **Create**.
+5. Copy the **Client ID** (looks like `…apps.googleusercontent.com`).
+6. In the app: **Settings → Cloud backup (Google Drive)** → paste the Client ID →
+   **Connect Google Drive** → approve the Google consent screen. Done — from then on
+   every automatic backup also syncs to Drive, and **Restore from Google Drive** is
+   available in Settings.
+
+Notes: the Client ID is **not a secret** (it's safe in the page). The app requests
+only the `drive.appdata` scope, so it can *only* read/write its own hidden backup
+file — it cannot see the rest of your Drive. The access token lives in memory for the
+session only; nothing else is stored.
 
 ---
 

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Kanji Practice</title>
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=24" />
+  <link rel="stylesheet" href="css/styles.css?v=25" />
 </head>
 <body>
   <header class="app-header">
@@ -59,6 +59,24 @@
         </div>
         <p class="hint" id="autobackup-info">Automatic backups: none yet.</p>
         <button id="restore-auto" class="btn btn-ghost" type="button">Restore latest automatic backup</button>
+      </div>
+
+      <!-- Phase 20: cloud-synced automatic backup (Google Drive) -->
+      <div class="settings-group" id="cloud-group">
+        <h3>Cloud backup (Google Drive)</h3>
+        <p class="hint">Optional: also back up automatically to a hidden folder in your
+          own Google Drive, so your data survives losing this device. One-time setup —
+          see the <a href="https://github.com/tim09g/Kanji---App#cloud-backup-google-drive-setup" target="_blank" rel="noopener">setup guide</a>
+          to create a Google Client ID, then paste it below.</p>
+        <label class="cloud-field">Google OAuth Client ID
+          <input id="gdrive-client-id" type="text" class="select-input" placeholder="…apps.googleusercontent.com" autocomplete="off" spellcheck="false" />
+        </label>
+        <div class="settings-actions">
+          <button id="gdrive-connect" class="btn btn-primary" type="button">Connect Google Drive</button>
+          <button id="gdrive-backup-now" class="btn" type="button">Back up now</button>
+          <button id="gdrive-restore" class="btn btn-ghost" type="button">Restore from Google Drive</button>
+        </div>
+        <p class="hint" id="gdrive-status">Not connected.</p>
       </div>
 
       <div class="settings-group">
@@ -258,18 +276,22 @@
     </p>
   </footer>
 
+  <!-- Google Identity Services (optional cloud backup). Loads only in production;
+       if blocked/offline the app works normally and cloud sync stays disabled. -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="vendor/hanzi-writer.min.js"></script>
   <script src="vendor/ts-fsrs.umd.js"></script>
-  <script src="data/kanji-meta.js?v=24"></script>
-  <script src="data/kanji-gen-1.js?v=24"></script>
-  <script src="data/kanji-gen-2.js?v=24"></script>
-  <script src="data/kanji-gen-3.js?v=24"></script>
-  <script src="data/kanji-gen-4.js?v=24"></script>
-  <script src="data/kanji-components.js?v=24"></script>
-  <script src="js/store.js?v=24"></script>
-  <script src="js/scheduler.js?v=24"></script>
-  <script src="js/filters.js?v=24"></script>
-  <script src="js/drawscreen.js?v=24"></script>
-  <script src="js/app.js?v=24"></script>
+  <script src="data/kanji-meta.js?v=25"></script>
+  <script src="data/kanji-gen-1.js?v=25"></script>
+  <script src="data/kanji-gen-2.js?v=25"></script>
+  <script src="data/kanji-gen-3.js?v=25"></script>
+  <script src="data/kanji-gen-4.js?v=25"></script>
+  <script src="data/kanji-components.js?v=25"></script>
+  <script src="js/store.js?v=25"></script>
+  <script src="js/scheduler.js?v=25"></script>
+  <script src="js/clouddrive.js?v=25"></script>
+  <script src="js/filters.js?v=25"></script>
+  <script src="js/drawscreen.js?v=25"></script>
+  <script src="js/app.js?v=25"></script>
 </body>
 </html>

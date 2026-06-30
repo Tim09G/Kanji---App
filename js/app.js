@@ -773,7 +773,7 @@
 
     $("done-back").onclick = function () { returnToScreen(cfg.returnScreen); };
     renderHome();
-    Store.autoBackup();   // C: back up after every completed study session
+    autoBackupAll();      // C: back up (local + cloud) after every completed study session
     show("screen-done");
   }
 
@@ -786,7 +786,7 @@
   }
 
   // ================= backup / restore (Phase 18) =================
-  function openSettings() { refreshAutobackupInfo(); show("screen-settings"); }
+  function openSettings() { refreshAutobackupInfo(); refreshCloudStatus(); show("screen-settings"); }
   function refreshAutobackupInfo() {
     var snaps = Store.autoBackups();
     var info = $("autobackup-info"), btn = $("restore-auto");
@@ -833,6 +833,70 @@
     alert("Restored from the latest automatic backup.");
   }
 
+  // ---- Phase 20: cloud (Google Drive) ----
+  function cloudJson() { return JSON.stringify(Store.exportData()); }
+  // Every automatic-backup trigger writes locally AND (best-effort) to the cloud.
+  function autoBackupAll() {
+    Store.autoBackup();
+    try { if (window.CloudDrive) CloudDrive.backupSilent(cloudJson()); } catch (e) { /* never blocks */ }
+  }
+  function refreshCloudStatus() {
+    var cd = window.CloudDrive, st = $("gdrive-status"), input = $("gdrive-client-id");
+    if (!st) return;
+    if (!cd) { st.textContent = "Cloud backup is unavailable in this build."; return; }
+    if (input && document.activeElement !== input) input.value = cd.clientId();
+    var configured = cd.configured();
+    $("gdrive-backup-now").disabled = !configured;
+    $("gdrive-restore").disabled = !configured;
+    if (!configured) { st.textContent = "Not connected — paste your Client ID and press Connect."; return; }
+    var last = cd.lastSync();
+    st.textContent = (cd.gisReady() ? "Connected." : "Configured (Google sign-in still loading)…") +
+      (last ? " Last cloud backup: " + new Date(last).toLocaleString() : " No cloud backup yet.");
+  }
+  function connectDrive() {
+    var cd = window.CloudDrive; if (!cd) return;
+    var id = ($("gdrive-client-id").value || "").trim();
+    if (!id) { alert("Paste your Google OAuth Client ID first (see the setup guide)."); return; }
+    cd.setClientId(id);
+    if (!cd.gisReady()) { alert("Google sign-in hasn't loaded yet. It needs an internet connection and the app served over https (e.g. GitHub Pages). Try again in a moment."); refreshCloudStatus(); return; }
+    $("gdrive-status").textContent = "Connecting…";
+    cd.connect().then(function () { return cd.upload(cloudJson(), false); }).then(function () {
+      refreshCloudStatus();
+      alert("Connected to Google Drive — your data has been backed up.");
+    }).catch(function (e) {
+      refreshCloudStatus();
+      alert("Couldn't connect to Google Drive: " + ((e && e.message) || "authorization failed") +
+        "\n\nDouble-check the Client ID, and that this site's web address is listed as an Authorized JavaScript origin in your Google Cloud project.");
+    });
+  }
+  function cloudBackupNow() {
+    var cd = window.CloudDrive; if (!cd || !cd.configured()) return;
+    $("gdrive-status").textContent = "Backing up…";
+    cd.upload(cloudJson(), true).then(function () { refreshCloudStatus(); alert("Backed up to Google Drive."); })
+      .catch(function (e) { refreshCloudStatus(); alert("Cloud backup failed: " + ((e && e.message) || "unknown error")); });
+  }
+  function restoreFromDrive() {
+    var cd = window.CloudDrive; if (!cd || !cd.configured()) return;
+    $("gdrive-status").textContent = "Fetching from Google Drive…";
+    cd.download(true).then(function (text) {
+      refreshCloudStatus();
+      if (!text) { alert("No backup was found in your Google Drive yet."); return; }
+      var obj;
+      try { obj = JSON.parse(text); } catch (e) { alert("The cloud backup couldn't be read (invalid data)."); return; }
+      if (!Store.validateBackup(obj)) { alert("The cloud file isn't a recognised Kanji Practice backup."); return; }
+      var n = Object.keys(obj.data.progress || {}).length;
+      if (!confirm("Restoring from Google Drive will OVERWRITE all current progress and settings with the cloud backup (" + n + " kanji" + (obj.exportedAt ? ", saved " + new Date(obj.exportedAt).toLocaleString() : "") + ").")) return;
+      if (!confirm("Are you sure? Your current data will be replaced and this can't be undone.")) return;
+      Store.autoBackup();        // local snapshot before overwriting
+      Store.importData(obj);
+      renderHome(); refreshAutobackupInfo(); refreshCloudStatus();
+      alert("Restored from Google Drive.");
+    }).catch(function (e) {
+      refreshCloudStatus();
+      alert("Couldn't fetch from Google Drive: " + ((e && e.message) || "unknown error"));
+    });
+  }
+
   // ================= wiring =================
   function init() {
     if (typeof HanziWriter === "undefined") {
@@ -875,6 +939,9 @@
       this.value = "";   // allow re-selecting the same file later
     });
     $("restore-auto").addEventListener("click", restoreAutoBackup);
+    $("gdrive-connect").addEventListener("click", connectDrive);
+    $("gdrive-backup-now").addEventListener("click", cloudBackupNow);
+    $("gdrive-restore").addEventListener("click", restoreFromDrive);
 
     $("browse-animate").addEventListener("click", function () { if (browseWriter) browseWriter.animateCharacter(); });
     $("browse-search").addEventListener("input", browseSearch);
@@ -909,8 +976,8 @@
 
     // C: automatic local backups — one at startup, then periodically (every 3h) as a
     // safety net for long sessions. (A backup also runs after every study session.)
-    Store.autoBackup();
-    setInterval(function () { Store.autoBackup(); }, 3 * 60 * 60 * 1000);
+    autoBackupAll();
+    setInterval(function () { autoBackupAll(); }, 3 * 60 * 60 * 1000);
   }
 
   document.addEventListener("DOMContentLoaded", init);
