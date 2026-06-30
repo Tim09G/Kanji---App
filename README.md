@@ -74,7 +74,9 @@ mixing new and due characters behaves consistently.
 ### 👁 Browse — full per-kanji reference
 - Search (typed) + **brisk** animated stroke order, with the full info panel: readings,
   meaning, stroke count, frequency, JLPT, radical, alternate radical-usage forms
-  (e.g. 手 → 扌), and the complete vocabulary list (grouped by reading) with **audio** (🔊).
+  (e.g. 手 → 扌), and the vocabulary list as a **compact side-by-side grid of word
+  chips** (grouped by reading) — **tap or hover a chip** to reveal its reading/English
+  in a floating tooltip and play its audio (same interaction as the draw screen).
 - The **same display-order, filter and grouped-section system as the Study list**
   (status, difficulty, JLPT/grade, lapses/leeches, similar-to, group, …) narrows and
   organises the Browse picker; section headers here are visual labels, each with a
@@ -182,7 +184,8 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
   - The **Difficulty filter** now reads FSRS's per-card difficulty value (D, ~1–10):
     Hard (D≥7) / Medium (4≤D<7) / Easy (D<4), plus **Not attempted** for cards with
     no FSRS data. The **lapse** and **leech** filters also read FSRS card state
-    (lapses / reps). A mastery-level breakdown view remains a future addition.
+    (lapses / reps). The home screen also shows a **5-level mastery breakdown**
+    (New / Learning / Mature / Seasoned / Mastered) derived from FSRS stability.
 - **What counts as "graduating" from Learn step 4:** completing the character once
   (you may retry strokes). Easy to make stricter later — see `Store.graduate` /
   `runLearnSession` in the code.
@@ -199,8 +202,12 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
 - **Radicals** use the classifying **Kangxi radical glyph** (from KanjiVG's
   KANJIDIC-aligned tags) plus a **Japanese hiragana name** (e.g. 水 → さんずい);
   the radical filter groups by that glyph across the full set.
-- **Home counts** show total-learned and due-for-review; a mastery-level breakdown
-  is a planned future addition (TODO in `renderHome`).
+- **Home counts** show total-learned and due-for-review, plus a **5-level mastery
+  breakdown** derived from each card's FSRS stability (S, ≈ the day-interval at which
+  recall ~90%): **New** (untouched) · **Learning** (in Learn scaffolding) · **Mature**
+  (graduated, S < 30 d) · **Seasoned** (30–120 d) · **Mastered** (≥ 120 d and not
+  currently relapsed). Thresholds live in `js/scheduler.js` (`MATURE_MAX` /
+  `MASTERED_MIN`) and are easy to tune.
 - **Stroke data is uniformly local KanjiVG** — verified all kanji have valid local
   stroke files with no missing/fallback source (so the calligraphic look is the
   standard KanjiVG style, not a loading gap).

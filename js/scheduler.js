@@ -152,6 +152,40 @@ window.Scheduler = (function () {
     return l >= 4 || (l >= 3 && r > 0 && (l / r) >= 0.4);
   }
 
+  // ---- mastery levels (A) — derived from FSRS stability/state ----
+  // Thresholds (flagged to the user): a graduated card's FSRS stability S (≈ the
+  // day-interval at which recall ~90%):
+  //   mature   = graduated, S < 30 days        (settling in, up to ~1 month)
+  //   seasoned = 30 ≤ S < 120 days             (≈1–4 months)
+  //   mastered = S ≥ 120 days AND not currently relapsed (state ≠ Relearning)
+  // (A lapse resets S low, so a recently-lapsed kanji naturally falls out of the
+  // higher buckets — that captures "no recent lapses".)
+  var MATURE_MAX = 30, MASTERED_MIN = 120;
+  function levelFromEntry(p) {
+    if (p && p.status === "review" && p.fsrs) {
+      var s = p.fsrs.stability || 0;
+      if (s >= MASTERED_MIN && p.fsrs.state !== lib.State.Relearning) return "mastered";
+      if (s >= MATURE_MAX) return "seasoned";
+      return "mature";
+    }
+    if (p && p.status === "learning") return "learning";
+    return "new";
+  }
+  function masteryLevel(char) { return levelFromEntry(Store.getProgress(char)); }
+  function masteryCounts() {
+    var counts = { new: 0, learning: 0, mature: 0, seasoned: 0, mastered: 0 };
+    var prog = Store.allProgress();                       // one read
+    var total = (window.KANJI_META || []).length;
+    var studied = 0;
+    for (var ch in prog) {
+      if (!Object.prototype.hasOwnProperty.call(prog, ch)) continue;
+      studied++;
+      counts[levelFromEntry(prog[ch])]++;
+    }
+    counts["new"] += Math.max(0, total - studied);        // everything untouched is New
+    return counts;
+  }
+
   function cardOf(char) { return rawCard(char); }
 
   return {
@@ -171,6 +205,8 @@ window.Scheduler = (function () {
     reps: reps,
     stability: stability,
     isLeech: isLeech,
+    masteryLevel: masteryLevel,
+    masteryCounts: masteryCounts,
     statsOf: statsOf,
     cardOf: cardOf,
   };

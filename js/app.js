@@ -104,14 +104,34 @@
   }
 
   // ================= HOME =================
+  var MASTERY_LEVELS = [
+    ["new", "New"], ["learning", "Learning"], ["mature", "Mature"],
+    ["seasoned", "Seasoned"], ["mastered", "Mastered"],
+  ];
+  function renderMastery() {
+    var c = Scheduler.masteryCounts();
+    var grid = $("home-mastery"); grid.innerHTML = "";
+    MASTERY_LEVELS.forEach(function (lv) {
+      var cell = document.createElement("div"); cell.className = "mastery-cell mastery-" + lv[0];
+      var n = document.createElement("div"); n.className = "mastery-num"; n.textContent = (c[lv[0]] || 0).toLocaleString();
+      var l = document.createElement("div"); l.className = "mastery-lab"; l.textContent = lv[1];
+      cell.appendChild(n); cell.appendChild(l); grid.appendChild(cell);
+    });
+  }
   function renderHome() {
-    // D3: show "total learned" and "due for review". (TODO: mastery-level breakdown later.)
+    // A: total learned + the FSRS-derived mastery breakdown; B: due banner treatment.
     var learned = Store.reviewPool().length;
     var due = Scheduler.dueChars();
-    $("home-counts").textContent = learned + " learned · " + due.length + " due for review";
+    $("home-counts").textContent = learned + " learned";
+    renderMastery();
     var pill = $("home-due");
-    if (due.length) { pill.hidden = false; pill.textContent = "🔔 " + due.length + " due for review — start now"; }
-    else { pill.hidden = true; }
+    if (due.length) {
+      pill.classList.remove("due-pill-empty"); pill.disabled = false;
+      pill.textContent = "🔔 " + due.length + " due for review — start now";
+    } else {
+      pill.classList.add("due-pill-empty"); pill.disabled = true;
+      pill.textContent = "Nothing due for review right now.";
+    }
   }
 
   // ================= BROWSE =================
@@ -190,19 +210,37 @@
       charDataLoader: function (c, done) { fetch("data/kanji/" + encodeURIComponent(c) + ".json").then(function (r) { return r.json(); }).then(done); },
     });
   }
+  // D: floating tooltip for Browse vocab (body-level so the scroll box can't clip it;
+  // reuses the .component-tip styling). Tap shows tooltip + plays audio; hover shows it.
+  var browseTip = null, browseTipTimer = null;
+  function showBrowseTip(text, el) {
+    if (!browseTip) { browseTip = document.createElement("div"); browseTip.className = "component-tip"; browseTip.hidden = true; document.body.appendChild(browseTip); }
+    browseTip.textContent = text; browseTip.hidden = false;
+    var r = el.getBoundingClientRect();
+    browseTip.style.left = Math.round(r.left) + "px";
+    browseTip.style.top = Math.round(r.bottom + 4) + "px";
+  }
+  function hideBrowseTip() { if (browseTip) browseTip.hidden = true; }
+
   function renderBrowseVocab(meta) {
     var root = $("browse-vocab-list"); root.innerHTML = "";
     if (!meta.vocab || !meta.vocab.length) { root.innerHTML = '<span class="cue-empty">No vocabulary yet for this kanji.</span>'; return; }
-    function vocabItem(w) {
-      var item = document.createElement("div"); item.className = "vocab-item";
+    // D: compact word chip — tap/hover reveals reading + English and plays audio.
+    function vocabChip(w) {
       var reading = w.r.map(function (s) { return s.t; }).join("");
-      item.appendChild(window.Speak.speakButton(w.jp));
-      var jp = document.createElement("span"); jp.className = "vocab-jp"; jp.textContent = " " + w.jp;
-      var gl = document.createElement("span"); gl.className = "vocab-gloss"; gl.textContent = "（" + reading + "） — " + w.en;
-      item.appendChild(jp); item.appendChild(gl);
-      return item;
+      var tipText = reading + " — " + w.en;
+      var btn = document.createElement("button");
+      btn.type = "button"; btn.className = "vocab-word vocab-jp"; btn.textContent = w.jp;
+      btn.addEventListener("mouseenter", function () { clearTimeout(browseTipTimer); showBrowseTip(tipText, btn); });
+      btn.addEventListener("mouseleave", function () { hideBrowseTip(); });
+      btn.addEventListener("click", function () {
+        clearTimeout(browseTipTimer); showBrowseTip(tipText, btn);
+        if (window.Speak) window.Speak.speak(w.jp);
+        browseTipTimer = setTimeout(hideBrowseTip, 3000);
+      });
+      return btn;
     }
-    // G: group by the kanji's reading, matching the study-screen cue panel.
+    // Group by reading (Phase 12 G), but lay each group's words out as a compact grid (D).
     var groups = {}, order = [];
     meta.vocab.forEach(function (w) {
       var key = w.reading || "";
@@ -211,7 +249,9 @@
     });
     order.forEach(function (reading) {
       if (reading) { var rh = document.createElement("div"); rh.className = "vocab-reading"; rh.textContent = reading; root.appendChild(rh); }
-      groups[reading].forEach(function (w) { root.appendChild(vocabItem(w)); });
+      var grid = document.createElement("div"); grid.className = "vocab-grid";
+      groups[reading].forEach(function (w) { grid.appendChild(vocabChip(w)); });
+      root.appendChild(grid);
     });
   }
   function openBrowse() {
@@ -736,7 +776,7 @@
     $("nav-browse").addEventListener("click", openBrowse);
     $("nav-study").addEventListener("click", function () { openList("Study", "screen-home"); });
     $("nav-settings").addEventListener("click", function () { show("screen-settings"); });
-    $("home-due").addEventListener("click", function () { startDueReview("screen-home", Filters.DEFAULT_SORT); });
+    $("home-due").addEventListener("click", function () { if (!$("home-due").disabled) startDueReview("screen-home", Filters.DEFAULT_SORT); });
 
     Array.prototype.forEach.call(document.querySelectorAll("[data-home]"), function (b) { b.addEventListener("click", goHome); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-back]"), function (b) {

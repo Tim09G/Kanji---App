@@ -116,6 +116,7 @@ window.Store = (function () {
   return {
     getSettings: getSettings,
     setCue: setCue,
+    allProgress: allProgress,
     getProgress: getProgress,
     saveProgress: saveProgress,
     recordLearnStep: recordLearnStep,
