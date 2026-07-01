@@ -705,11 +705,26 @@
     afterManage(chars.length + " kanji reset to unlearned.");
   }
   function afterManage(msg) {
+    // Phase 27 A: complete entirely in-app. Apply -> back to Settings -> in-DOM
+    // toast. (Avoids the native alert() that could blank the page in the iOS
+    // standalone PWA, and there's no need to rebuild the huge grid we're leaving.)
     listSelected = {};
-    buildListGrid();     // refresh status tags with the new state (also clears the count)
     renderHome();        // home counts / mastery reflect the change
     autoBackupAll();     // persist the new state to the rolling + cloud backups
-    alert(msg);
+    openSettings();      // return to Settings (in-app screen switch, no navigation)
+    toast(msg);
+  }
+
+  // A lightweight, self-dismissing in-app notification (replaces blocking alert()
+  // for non-critical confirmations).
+  var toastTimer = null;
+  function toast(msg) {
+    var el = $("toast");
+    if (!el) { el = document.createElement("div"); el.id = "toast"; el.className = "toast"; document.body.appendChild(el); }
+    el.textContent = msg;
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 3200);
   }
 
   function runSession(cfg) {
@@ -1030,6 +1045,39 @@
     // safety net for long sessions. (A backup also runs after every study session.)
     autoBackupAll();
     setInterval(function () { autoBackupAll(); }, 3 * 60 * 60 * 1000);
+
+    initOffline();   // Phase 27 B: register the service worker + warm the offline cache
+  }
+
+  // ===== Offline (Phase 27 B) =====
+  var STROKES_CACHED_KEY = "kanji.offline.strokesCached";
+  function initOffline() {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+    // When a new service worker takes control (a new deploy activated while online),
+    // reload once so the freshly-cached assets are used — this is what keeps the app
+    // from getting stuck on an old version (Phase 21 J).
+    var reloaded = false;
+    navigator.serviceWorker.addEventListener("controllerchange", function () {
+      if (reloaded) return; reloaded = true; window.location.reload();
+    });
+    navigator.serviceWorker.addEventListener("message", function (e) {
+      if (e.data && e.data.type === "strokes-cached") {
+        try { localStorage.setItem(STROKES_CACHED_KEY, "1"); } catch (x) {}
+      }
+    });
+    // Once, when online and under SW control, bulk-cache all stroke files in the
+    // background so any kanji can be studied offline later.
+    maybeCacheStrokes();
+    window.addEventListener("online", maybeCacheStrokes);
+  }
+  function maybeCacheStrokes() {
+    if (!navigator.onLine) return;
+    try { if (localStorage.getItem(STROKES_CACHED_KEY)) return; } catch (x) {}
+    var ctrl = navigator.serviceWorker && navigator.serviceWorker.controller;
+    if (!ctrl) return;   // no SW controlling yet (first load, pre-claim) — runs next load
+    var urls = (window.KANJI_META || []).map(function (m) { return "data/kanji/" + encodeURIComponent(m.char) + ".json"; });
+    if (urls.length) ctrl.postMessage({ type: "cache-strokes", urls: urls });
   }
 
   document.addEventListener("DOMContentLoaded", init);

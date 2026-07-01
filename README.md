@@ -319,12 +319,21 @@ There's a `manifest.webmanifest` + app icons, so once it's on HTTPS you can use
 **Share → Add to Home Screen** (iOS Safari) or the browser's **Install** prompt
 (Android/desktop Chrome). It then opens full-screen like a normal app.
 
-**About updates / caching:** the app has **no service worker**, so it never caches
-itself offline — every visit loads the current files from the server, and all asset
-links carry a `?v=NN` version tag that's bumped on each release to defeat stale
-browser caching. In short, there's no "stuck on an old version" problem to manage. (A
-network-first service worker for true offline use can be added later if wanted; it
-isn't needed for the current online use.)
+**Works offline.** A service worker (`sw.js`) caches the app shell and the full
+metadata/vocabulary datasets on first load, and caches stroke-order data as you use
+it (plus a one-time background download of *all* stroke files after your first online
+visit). After that first load you can go fully offline — open the app, browse, and run
+complete Learn/Review sessions with FSRS scheduling and progress tracking; everything
+it needs is local. Cloud backup simply skips while offline and syncs on the next
+online trigger (Phase 20 behaviour). Vocabulary audio uses the device's built-in
+Japanese voice, so it works offline where one is installed and is silently skipped
+otherwise.
+
+**About updates / caching:** HTML is fetched **network-first**, so when you're online
+the app always loads the newest version (and every asset link also carries a `?v=NN`
+tag bumped each release). When a new version activates, the app refreshes once to pick
+it up. So offline caching does **not** cause a "stuck on an old version" problem — you
+get offline use *and* prompt updates.
 
 ---
 

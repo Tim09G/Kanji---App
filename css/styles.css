@@ -200,6 +200,16 @@ html, body {
 #screen-list.mode-manage #list-manage-actions { display: flex; }
 .manage-actions { justify-content: center; gap: 0.75rem; flex-wrap: wrap; }
 
+/* Phase 27 A: in-app toast (replaces blocking alert() for bulk-action feedback). */
+.toast {
+  position: fixed; left: 50%; bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  transform: translate(-50%, 1rem); z-index: 50; max-width: min(90vw, 30rem);
+  background: #1f2933; color: #fff; padding: 0.7rem 1rem; border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(16, 24, 40, 0.28); font-size: 0.95rem; text-align: center;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
 .select-grid {
   display: grid; gap: 0.5rem;
   grid-template-columns: repeat(auto-fill, minmax(3rem, 1fr));
