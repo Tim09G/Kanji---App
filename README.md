@@ -181,7 +181,12 @@ learned** and a tappable **due-for-review** count that updates live.
 name-use) character. Each one is generated from open data:
 - **Stroke order** from KanjiVG (HanziWriter format).
 - **Metadata** (meaning, on/kun readings, grade, JLPT, frequency rank, stroke
-  count, classifying radical) from KANJIDIC2.
+  count, classifying radical) from KANJIDIC2. JLPT levels use the "new" (N5–N1)
+  scale, whose public data (`jlpt_new`) is incomplete for a set of common kanji
+  (e.g. 無, 分). For the 19 such kanji that *do* carry an official pre-2010 JLPT
+  level (`jlpt_old`), the level is filled from that, mapped old→new (4→N5, 3→N4,
+  2→N3, 1→N1) so they group correctly instead of falling into "outside the JLPT
+  order". Kanji with no JLPT level in any source (mostly jinmeiyō) stay unlevelled.
 - **Vocabulary** from the **full JMdict** (not just the common-word subset),
   grouped ≥2 per *common* reading and aiming for ≥8 total **where the data supports
   it** — no padding. Common words are ranked first; rarer/variant kanji still get

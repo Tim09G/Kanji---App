@@ -678,12 +678,22 @@
   function manageMarkLearnedDue() {
     var chars = selectedListChars();
     if (!chars.length) return;
-    if (!confirm("Mark " + chars.length + " kanji as learned and due for review now?\n\n" +
-      "They'll be added to the review pool and shown for review immediately. Any existing " +
-      "review schedule for these kanji is reset.")) return;
+    // A: never overwrite a kanji already tracked by FSRS — only act on "new" /
+    // still-in-Learn characters; skip anything already in the review pool.
+    var eligible = chars.filter(function (c) { return Store.getProgress(c).status !== "review"; });
+    var skipped = chars.length - eligible.length;
+    if (!eligible.length) {
+      alert("All " + chars.length + " selected kanji are already in the review pool — nothing to do.");
+      return;
+    }
+    var msg = "Mark " + eligible.length + " kanji as learned and due for review now?";
+    if (skipped) msg += "\n\n(" + skipped + " already in the review pool will be skipped, keeping their schedule.)";
+    msg += "\n\nThey'll be added to the review pool and shown for review immediately.";
+    if (!confirm(msg)) return;
     Store.autoBackup();                                  // restore point before a bulk change
-    chars.forEach(function (c) { Store.markLearnedDue(c); });
-    afterManage(chars.length + " kanji marked as learned and due for review.");
+    eligible.forEach(function (c) { Store.markLearnedDue(c); });
+    afterManage(eligible.length + " kanji marked as learned and due for review." +
+      (skipped ? " " + skipped + " already-reviewing kanji were left unchanged." : ""));
   }
   function manageResetUnlearned() {
     var chars = selectedListChars();

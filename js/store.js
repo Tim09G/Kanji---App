@@ -54,7 +54,20 @@ window.Store = (function () {
   }
 
   // ---- Progress ----
-  function allProgress() { return readJSON(PROGRESS_KEY, {}); }
+  // Perf (Phase 26 C): the parsed progress map is cached in memory. Reads used to
+  // re-parse the entire localStorage blob on *every* getProgress call, and render
+  // paths call getProgress thousands of times per navigation — with a large review
+  // pool that meant parsing ~1GB and multi-second page opens. The cache turns those
+  // thousands of JSON.parse calls into one; every writer keeps it in sync.
+  var _progress = null;
+  function allProgress() {
+    if (_progress === null) _progress = readJSON(PROGRESS_KEY, {});
+    return _progress;
+  }
+  function writeProgress(map) {
+    _progress = map;
+    writeJSON(PROGRESS_KEY, map);
+  }
 
   function getProgress(char) {
     var all = allProgress();
@@ -65,7 +78,7 @@ window.Store = (function () {
     var all = allProgress();
     var cur = all[char] || { status: "new", learnStep: 0 };
     all[char] = Object.assign({}, cur, patch);
-    writeJSON(PROGRESS_KEY, all);
+    writeProgress(all);
     return all[char];
   }
 
@@ -86,7 +99,7 @@ window.Store = (function () {
   function replaceProgress(char, entry) {
     var all = allProgress();
     all[char] = entry;
-    writeJSON(PROGRESS_KEY, all);
+    writeProgress(all);
     return entry;
   }
   // Phase 26: mark a character as learned and immediately due for review — a graduated
@@ -133,6 +146,7 @@ window.Store = (function () {
 
   // Wipe everything (handy for testing).
   function resetAll() {
+    _progress = {};                                   // keep the cache in sync
     try { localStorage.removeItem(PROGRESS_KEY); } catch (e) {}
   }
 
@@ -152,7 +166,7 @@ window.Store = (function () {
       obj.data.progress && typeof obj.data.progress === "object");
   }
   function applyData(data) {
-    if (data && data.progress && typeof data.progress === "object") writeJSON(PROGRESS_KEY, data.progress);
+    if (data && data.progress && typeof data.progress === "object") writeProgress(data.progress);   // refreshes cache
     if (data && data.settings && typeof data.settings === "object") writeJSON(SETTINGS_KEY, data.settings);
   }
   // Overwrite live data from a validated export envelope. Returns true on success.
