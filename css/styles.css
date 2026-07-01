@@ -171,10 +171,11 @@ html, body {
   border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 1.25rem; width: 100%; text-align: center;
 }
-/* D: kanji + meaning side by side, smaller. */
-.info-head { display: flex; align-items: baseline; justify-content: center; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.85rem; }
-.info-char { font-size: 2.4rem; line-height: 1; }
-.info-meaning { font-size: 1.05rem; font-weight: 600; margin: 0; }
+/* D/Phase 22 A: compact, left-aligned "kanji — meaning" label row. */
+.info-head { display: flex; align-items: baseline; justify-content: flex-start; gap: 0.4rem; flex-wrap: wrap; margin: 0 0 0.5rem; }
+.info-char { font-size: 1.8rem; line-height: 1; }
+.info-dash { color: var(--muted); }
+.info-meaning { font-size: 1rem; font-weight: 600; margin: 0; }
 .readings { display: grid; grid-template-columns: auto 1fr; gap: 0.4rem 1rem; text-align: left; margin: 0; }
 .readings dt { color: var(--muted); font-size: 0.85rem; padding-top: 0.15rem; }
 .readings dd { margin: 0; font-size: 1.05rem; }
@@ -220,6 +221,9 @@ html, body {
   padding: 1.25rem; display: flex; flex-direction: column; align-items: center;
 }
 .draw-status { margin: 0.5rem 0 0; min-height: 1.2rem; text-align: center; color: var(--muted); font-size: 0.9rem; }
+/* Phase 22 D: when there's no flow message, the line takes zero space so the
+   buttons sit directly under the draw box (result feedback is the ✓/✗ badge). */
+.draw-status:empty { display: none; }
 /* H: ✓/✗ result badge that lives on the buttons row. */
 .draw-result { font-size: 1.4rem; font-weight: 700; line-height: 1; min-width: 1.4rem; text-align: center; }
 .draw-result.good { color: var(--good); }
@@ -502,8 +506,9 @@ html, body {
 .done-missed-kanji { font-size: 1.5rem; color: var(--bad); }
 
 /* browse vocab list (F) */
-/* B: tighten the gap between Strokes and Vocabulary. */
-.browse-vocab { margin-top: 0.5rem; text-align: left; border-top: 1px solid var(--line); padding-top: 0.5rem; }
+/* Phase 22 B: Vocabulary follows Strokes with normal row spacing — no extra
+   divider/gap (the Strokes row already carries its own bottom rule). */
+.browse-vocab { margin-top: 0.4rem; text-align: left; }
 .browse-vocab .vocab-item { margin: 0.3rem 0; }
 .browse-vocab .vocab-jp { font-weight: 600; }
 /* D: compact, side-by-side word chips that reveal reading/English on tap/hover. */

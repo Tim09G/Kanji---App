@@ -119,7 +119,8 @@ window.DrawScreen = (function () {
     if (!meta) return;
 
     if (settings.meaning !== false) {
-      var mb = block("Meaning");
+      // Phase 22 C: no "MEANING" header — the value is self-explanatory.
+      var mb = document.createElement("div"); mb.className = "cue-block";
       var mv = document.createElement("div");
       mv.className = "cue-value";
       mv.textContent = meta.meaning;
@@ -130,7 +131,8 @@ window.DrawScreen = (function () {
 
     if (settings.readings !== false) {
       // E: same labelled On/Kun rows as Browse (音（おん）/訓（くん）).
-      var rb = block("Readings");
+      // Phase 22 C: no "READINGS" header — the 音/訓 row labels are enough.
+      var rb = document.createElement("div"); rb.className = "cue-block";
       var on = (meta.on || []).map(kataToHira);
       var kun = (meta.kun || []).map(function (k) { return k.replace(/[.\-]/g, ""); });
       var dl = document.createElement("dl"); dl.className = "readings";
