@@ -81,6 +81,25 @@ window.Store = (function () {
     return saveProgress(char, { status: "review", learnStep: 4, graduatedAt: Date.now() });
   }
 
+  // Fully replace a character's entry (unlike saveProgress, does NOT merge — so any
+  // prior FSRS card / stats are dropped). Used by the Settings bulk tools.
+  function replaceProgress(char, entry) {
+    var all = allProgress();
+    all[char] = entry;
+    writeJSON(PROGRESS_KEY, all);
+    return entry;
+  }
+  // Phase 26: mark a character as learned and immediately due for review — a graduated
+  // review item with no FSRS card, which Scheduler.isDue() treats as due right now.
+  // Any existing review schedule for the character is cleared (a fresh test).
+  function markLearnedDue(char) {
+    return replaceProgress(char, { status: "review", learnStep: 4, graduatedAt: Date.now() });
+  }
+  // Phase 26: reset a character back to unlearned (clears FSRS history + learn progress).
+  function unlearn(char) {
+    return replaceProgress(char, { status: "new", learnStep: 0 });
+  }
+
   // Sequence of all known chars in study order (currently: grade, then list order).
   function studyOrder() {
     var meta = window.KANJI_META || [];
@@ -169,6 +188,8 @@ window.Store = (function () {
     saveProgress: saveProgress,
     recordLearnStep: recordLearnStep,
     graduate: graduate,
+    markLearnedDue: markLearnedDue,
+    unlearn: unlearn,
     studyOrder: studyOrder,
     nextNewChars: nextNewChars,
     reviewPool: reviewPool,

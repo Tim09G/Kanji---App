@@ -110,6 +110,15 @@ mixing new and due characters behaves consistently.
     best-effort: if you're offline they fail silently and retry on the next trigger —
     the local backup always happens regardless. **Restore from Google Drive** is in
     Settings, behind the same two-confirmation warning. See the setup guide below.
+- **Manage learning state** — bulk-edit many kanji at once using the *same* search,
+  filters, sort and section selection as the Study screen (so you can grab hundreds in
+  a few taps). Two actions on the selection:
+  - **Mark learned & due now** — drops the selected kanji straight into the review pool
+    as *immediately due*, so an experienced learner can test into FSRS without
+    re-learning each one by hand. (Any existing review schedule for them is reset.)
+  - **Reset to unlearned** — sends the selected kanji back to "new", clearing their
+    review history and Learn progress.
+  Both take a safety auto-backup first and are confirmation-guarded.
 - **Reset progress** lives here now, behind **two confirmations**.
 
 ### The draw screen (shared by Learn & Review)

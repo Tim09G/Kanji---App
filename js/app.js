@@ -301,6 +301,7 @@
   // ================= SHARED LIST =================
   var listSelected = {};
   var listVisible = [];   // characters currently shown (after filters), in sort order
+  var listMode = "study"; // "study" (start a session) | "manage" (Phase 26 bulk edit)
 
   function currentSort() { return $("list-sort").value || Filters.DEFAULT_SORT; }
 
@@ -384,6 +385,9 @@
     var n = selectedListChars().length;
     $("list-count").textContent = n + " selected";
     $("list-start").disabled = (n === 0 && newSliderVal() === 0);
+    // Phase 26: manage-mode bulk actions need at least one selected kanji.
+    if ($("manage-mark")) $("manage-mark").disabled = (n === 0);
+    if ($("manage-reset")) $("manage-reset").disabled = (n === 0);
   }
   // Re-sync chip .selected classes from listSelected without rebuilding the grid
   // (preserves section collapse/expand state — H/K).
@@ -621,8 +625,10 @@
     }
   }
 
-  function openList(title, openedFrom) {
+  function openList(title, openedFrom, mode) {
     listOpenedFrom = openedFrom;
+    listMode = mode || "study";
+    $("screen-list").classList.toggle("mode-manage", listMode === "manage");
     $("list-title").textContent = title;
     buildFilterRows($("filter-rows"), listFilterValues); buildSortOptions(); buildReviewOrder(); setupNewSlider();
     $("filter-match").textContent = "";
@@ -633,6 +639,9 @@
     renderListDue(); buildListGrid();
     show("screen-list");
   }
+
+  // Phase 26: open the shared list in bulk-manage mode (from Settings).
+  function openManage() { openList("Manage kanji", "screen-settings", "manage"); }
 
   // ================= SESSION ENGINE =================
   function makeLearn(char, step) { return { char: char, kind: "learn", step: step, level: STEP[step].level }; }
@@ -663,6 +672,34 @@
     var due = Scheduler.dueChars();
     if (!due.length) return;
     runSession({ learnItems: [], reviewChars: Filters.sortChars(due, order || Filters.DEFAULT_SORT), modeLabel: "Review", returnScreen: returnScreen });
+  }
+
+  // ================= MANAGE (Phase 26) — bulk-edit learned state =================
+  function manageMarkLearnedDue() {
+    var chars = selectedListChars();
+    if (!chars.length) return;
+    if (!confirm("Mark " + chars.length + " kanji as learned and due for review now?\n\n" +
+      "They'll be added to the review pool and shown for review immediately. Any existing " +
+      "review schedule for these kanji is reset.")) return;
+    Store.autoBackup();                                  // restore point before a bulk change
+    chars.forEach(function (c) { Store.markLearnedDue(c); });
+    afterManage(chars.length + " kanji marked as learned and due for review.");
+  }
+  function manageResetUnlearned() {
+    var chars = selectedListChars();
+    if (!chars.length) return;
+    if (!confirm("Reset " + chars.length + " kanji to unlearned?\n\n" +
+      "This erases their review history and learn progress, and cannot be undone.")) return;
+    Store.autoBackup();
+    chars.forEach(function (c) { Store.unlearn(c); });
+    afterManage(chars.length + " kanji reset to unlearned.");
+  }
+  function afterManage(msg) {
+    listSelected = {};
+    buildListGrid();     // refresh status tags with the new state (also clears the count)
+    renderHome();        // home counts / mastery reflect the change
+    autoBackupAll();     // persist the new state to the rolling + cloud backups
+    alert(msg);
   }
 
   function runSession(cfg) {
@@ -930,6 +967,11 @@
       if (!confirm("Are you sure? This permanently erases your progress and cannot be undone.")) return;
       Store.resetAll(); renderHome(); alert("Progress has been reset.");
     });
+
+    // Phase 26: bulk-manage learned state
+    $("manage-progress").addEventListener("click", openManage);
+    $("manage-mark").addEventListener("click", manageMarkLearnedDue);
+    $("manage-reset").addEventListener("click", manageResetUnlearned);
 
     // Phase 18: backup / restore
     $("export-data").addEventListener("click", exportBackup);

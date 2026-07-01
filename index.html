@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;rect width='100' height='100' rx='20' fill='%232f6fed'/&gt;&lt;text x='50' y='52' font-size='64' text-anchor='middle' dominant-baseline='central' fill='white'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=30" />
+  <link rel="stylesheet" href="css/styles.css?v=31" />
 </head>
 <body>
   <main class="app-main">
@@ -80,6 +80,17 @@
           <button id="gdrive-restore" class="btn btn-ghost" type="button">Restore from Google Drive</button>
         </div>
         <p class="hint" id="gdrive-status">Not connected.</p>
+      </div>
+
+      <!-- Phase 26: bulk-manage learned state (seed the review pool / reset kanji). -->
+      <div class="settings-group">
+        <h3>Manage learning state</h3>
+        <p class="hint">Bulk-edit many kanji at once using the same search, filters and
+          selection as the Study screen. Handy if you already know a lot of kanji:
+          mark them <strong>learned &amp; due for review now</strong> to test straight into
+          the review pool without re-learning each one — or <strong>reset</strong> kanji
+          back to unlearned.</p>
+        <button id="manage-progress" class="btn btn-primary" type="button">Select kanji to manage…</button>
       </div>
 
       <div class="settings-group">
@@ -204,7 +215,9 @@
         </div>
       </div>
 
-      <p class="hint">Tap characters to include them, or use search/filters above.</p>
+      <p class="hint" id="list-hint">Tap characters to include them, or use search/filters above.</p>
+      <!-- Phase 26: manage mode — bulk-edit learned state for the selected kanji. -->
+      <p class="hint" id="list-manage-hint">Select kanji (use search/filters to grab many at once), then choose an action below.</p>
       <!-- C: Review order moved into the button row, to the left of the count. -->
       <div class="select-toolbar">
         <button id="list-all" class="btn btn-ghost" type="button">Select all</button>
@@ -219,8 +232,13 @@
       </div>
       <div id="list-grid" class="select-grid status-grid"></div>
 
-      <div class="screen-actions">
+      <div class="screen-actions" id="list-study-actions">
         <button id="list-start" class="btn btn-primary" type="button" disabled>Start →</button>
+      </div>
+      <!-- Phase 26: bulk actions shown only in manage mode. -->
+      <div class="screen-actions manage-actions" id="list-manage-actions">
+        <button id="manage-mark" class="btn btn-primary" type="button" disabled>✓ Mark learned &amp; due now</button>
+        <button id="manage-reset" class="btn btn-danger" type="button" disabled>↺ Reset to unlearned</button>
       </div>
     </section>
 
@@ -294,17 +312,17 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="vendor/hanzi-writer.min.js"></script>
   <script src="vendor/ts-fsrs.umd.js"></script>
-  <script src="data/kanji-meta.js?v=30"></script>
-  <script src="data/kanji-gen-1.js?v=30"></script>
-  <script src="data/kanji-gen-2.js?v=30"></script>
-  <script src="data/kanji-gen-3.js?v=30"></script>
-  <script src="data/kanji-gen-4.js?v=30"></script>
-  <script src="data/kanji-components.js?v=30"></script>
-  <script src="js/store.js?v=30"></script>
-  <script src="js/scheduler.js?v=30"></script>
-  <script src="js/clouddrive.js?v=30"></script>
-  <script src="js/filters.js?v=30"></script>
-  <script src="js/drawscreen.js?v=30"></script>
-  <script src="js/app.js?v=30"></script>
+  <script src="data/kanji-meta.js?v=31"></script>
+  <script src="data/kanji-gen-1.js?v=31"></script>
+  <script src="data/kanji-gen-2.js?v=31"></script>
+  <script src="data/kanji-gen-3.js?v=31"></script>
+  <script src="data/kanji-gen-4.js?v=31"></script>
+  <script src="data/kanji-components.js?v=31"></script>
+  <script src="js/store.js?v=31"></script>
+  <script src="js/scheduler.js?v=31"></script>
+  <script src="js/clouddrive.js?v=31"></script>
+  <script src="js/filters.js?v=31"></script>
+  <script src="js/drawscreen.js?v=31"></script>
+  <script src="js/app.js?v=31"></script>
 </body>
 </html>
