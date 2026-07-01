@@ -276,6 +276,7 @@ window.DrawScreen = (function () {
   var RAD_COLOR = "#d6453d";    // radical strokes (red)
   var HOVER_COLOR = "#2f6fed";  // component hover (blue)
   var tipEl = null;
+  var compTipTimer = null;      // auto-hide timer for tap-shown component tips
   function ensureTip() {
     if (tipEl) return tipEl;
     tipEl = document.createElement("div");
@@ -286,7 +287,7 @@ window.DrawScreen = (function () {
   function showTip(html, x, y) { var t = ensureTip(); t.innerHTML = html; t.hidden = false; moveTip(x, y); }
   function moveTip(x, y) { if (tipEl && !tipEl.hidden) { tipEl.style.left = (x + 14) + "px"; tipEl.style.top = (y + 14) + "px"; } }
   function hideTip() { if (tipEl) tipEl.hidden = true; }
-  function clearHighlights() { var ov = els.target.querySelector(".hl-overlay"); if (ov) ov.parentNode.removeChild(ov); hideTip(); }
+  function clearHighlights() { clearTimeout(compTipTimer); var ov = els.target.querySelector(".hl-overlay"); if (ov) ov.parentNode.removeChild(ov); hideTip(); }
 
   function ovPath(d, fill, hit) {
     var pth = document.createElementNS(SVGNS, "path");
@@ -294,6 +295,35 @@ window.DrawScreen = (function () {
     if (hit) { pth.style.pointerEvents = "all"; pth.style.cursor = "help"; }
     else { pth.style.pointerEvents = "none"; }
     return pth;
+  }
+
+  // Wire a component's hit regions for hover (desktop) and tap (mouse + touch).
+  // Phase 24: a tap on a component shows its info and MUST NOT bubble up to the
+  // draw-area tap-to-pause/advance handler — so component tap and pause/advance
+  // are mutually exclusive. Blank-canvas taps still reach the pause handler.
+  function wireComponentHits(hit, tipHtml) {
+    function on() { hit.forEach(function (z) { z.setAttribute("fill", HOVER_COLOR); }); }
+    function off() { hit.forEach(function (z) { z.setAttribute("fill", "transparent"); }); }
+    function pointOf(e) {
+      var t = e.changedTouches && e.changedTouches[0];
+      return t ? { x: t.clientX, y: t.clientY } : { x: e.clientX, y: e.clientY };
+    }
+    function tap(e) {
+      e.stopPropagation();                                   // beat the pause/advance handler
+      if (e.type === "touchend" && e.cancelable) e.preventDefault();  // no ghost click
+      on();
+      var p = pointOf(e);
+      showTip(tipHtml, p.x, p.y);
+      clearTimeout(compTipTimer);
+      compTipTimer = setTimeout(function () { off(); hideTip(); }, 3000);  // auto-hide (touch)
+    }
+    hit.forEach(function (q) {
+      q.addEventListener("mouseenter", function (e) { on(); showTip(tipHtml, e.clientX, e.clientY); });
+      q.addEventListener("mousemove", function (e) { moveTip(e.clientX, e.clientY); });
+      q.addEventListener("mouseleave", function () { off(); hideTip(); });
+      q.addEventListener("click", tap);
+      q.addEventListener("touchend", tap, { passive: false });
+    });
   }
 
   // After completion, overlay coloured paths (from our own stroke data) onto the
@@ -315,11 +345,7 @@ window.DrawScreen = (function () {
       cmp.strokes.forEach(function (i) { if (strokeData.strokes[i]) { var pp = ovPath(strokeData.strokes[i], "transparent", true); ov.appendChild(pp); hit.push(pp); } });
       var tip = "<strong>" + cmp.char + "</strong>" + (cmp.meaning ? " — " + cmp.meaning : "") +
                 (cmp.readings && cmp.readings.length ? "<br>" + cmp.readings.join("、") : "");
-      hit.forEach(function (q) {
-        q.addEventListener("mouseenter", function (e) { hit.forEach(function (z) { z.setAttribute("fill", HOVER_COLOR); }); showTip(tip, e.clientX, e.clientY); });
-        q.addEventListener("mousemove", function (e) { moveTip(e.clientX, e.clientY); });
-        q.addEventListener("mouseleave", function () { hit.forEach(function (z) { z.setAttribute("fill", "transparent"); }); hideTip(); });
-      });
+      wireComponentHits(hit, tip);
     });
     g.appendChild(ov);
   }
@@ -339,11 +365,7 @@ window.DrawScreen = (function () {
       cmp.strokes.forEach(function (i) { if (sd.strokes[i]) { var pp = ovPath(sd.strokes[i], "transparent", true); ov.appendChild(pp); hit.push(pp); } });
       var tip = "<strong>" + cmp.char + "</strong>" + (cmp.meaning ? " — " + cmp.meaning : "") +
                 (cmp.readings && cmp.readings.length ? "<br>" + cmp.readings.join("、") : "");
-      hit.forEach(function (q) {
-        q.addEventListener("mouseenter", function (e) { hit.forEach(function (z) { z.setAttribute("fill", HOVER_COLOR); }); showTip(tip, e.clientX, e.clientY); });
-        q.addEventListener("mousemove", function (e) { moveTip(e.clientX, e.clientY); });
-        q.addEventListener("mouseleave", function () { hit.forEach(function (z) { z.setAttribute("fill", "transparent"); }); hideTip(); });
-      });
+      wireComponentHits(hit, tip);
     });
     g.appendChild(ov);
   }
