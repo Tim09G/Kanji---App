@@ -220,10 +220,21 @@ html, body {
   border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 1.25rem; display: flex; flex-direction: column; align-items: center;
 }
-/* H: ✓/✗ result badge that lives on the buttons row. */
-.draw-result { font-size: 1.4rem; font-weight: 700; line-height: 1; min-width: 1.4rem; text-align: center; }
-.draw-result.good { color: var(--good); }
-.draw-result.bad { color: var(--bad); }
+/* H/Phase 25: ✓/✗ result badge on the buttons row — a tappable control (flip
+   pass↔fail), so it gets a subtle raised, bordered affordance rather than looking
+   like a static label. */
+.draw-result {
+  font: inherit; font-size: 1.4rem; font-weight: 700; line-height: 1;
+  min-width: 2.2rem; text-align: center; padding: 0.15rem 0.5rem;
+  border-radius: 10px; border: 1.5px solid var(--line); background: var(--card);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.12); cursor: pointer;
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+.draw-result.good { color: var(--good); border-color: var(--good); background: rgba(46, 158, 107, 0.10); }
+.draw-result.bad { color: var(--bad); border-color: var(--bad); background: rgba(214, 69, 61, 0.10); }
+.draw-result:hover { transform: translateY(-1px); }
+.draw-result:active { transform: translateY(1px); box-shadow: none; }
+.draw-result[hidden] { display: none; }
 
 /* cue panel */
 .cue-panel {

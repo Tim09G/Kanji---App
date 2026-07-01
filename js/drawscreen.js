@@ -36,6 +36,9 @@ window.DrawScreen = (function () {
   var prevChar = null;       // the previously-shown character (for "Prior kanji")
   var inPrior = false;       // currently viewing the prior character (read-only)
   var priorSaved = null;     // saved current-task state while viewing prior
+  var badgePass = null;      // Phase 25: current ✓/✗ badge state (null while drawing);
+                             // user can tap to toggle before advancing (overrides the
+                             // system result that FSRS records on advance).
 
   // ---- helpers ----
   function kataToHira(s) {
@@ -66,14 +69,33 @@ window.DrawScreen = (function () {
   // ✓/✗ badge (setStatus) is the only feedback; this stays a no-op so the many
   // flow-cue call sites keep working without printing anything.
   function setPrompt() {}
-  // H: the result badge on the buttons row. "good" -> green ✓, "bad" -> red ✗,
-  // empty -> nothing (while drawing). The text becomes the badge's tooltip/a11y label.
+  // H: the result badge on the buttons row. "good" -> green ✓ (pass), "bad" -> red ✗
+  // (fail), empty -> nothing (while drawing). Kept as the single entry point so all
+  // existing call sites work; it just seeds the badge state that renderBadge() draws.
   function setStatus(t, kind) {
-    var mark = kind === "good" ? "✓" : kind === "bad" ? "✗" : "";
-    els.status.textContent = mark;
-    els.status.className = "draw-result" + (kind ? " " + kind : "");
-    els.status.title = t || "";
-    els.status.setAttribute("aria-label", t || "");
+    badgePass = kind === "good" ? true : kind === "bad" ? false : null;
+    renderBadge(t);
+  }
+  // Phase 25 A: draw the badge from badgePass. Interactive (tappable) only when a
+  // result is showing; the label/title carries the reason for a11y.
+  function renderBadge(title) {
+    var el = els.status; if (!el) return;
+    if (badgePass === true) { el.textContent = "✓"; el.className = "draw-result good"; el.hidden = false; }
+    else if (badgePass === false) { el.textContent = "✗"; el.className = "draw-result bad"; el.hidden = false; }
+    else { el.textContent = ""; el.className = "draw-result"; el.hidden = true; }
+    var label = title !== undefined ? (title || "")
+      : (badgePass === true ? "Marked correct — tap to change" : badgePass === false ? "Marked incorrect — tap to change" : "");
+    el.title = label; el.setAttribute("aria-label", label);
+  }
+  // Phase 25 A: tapping the badge flips pass<->fail. If an auto-advance countdown is
+  // running it is cancelled first, so the user has time to decide; they then advance
+  // by tapping the character (the normal tap-to-continue). Works for mouse + touch.
+  function toggleBadge(e) {
+    if (badgePass === null || badgePass === undefined || inPrior || !done) return;
+    if (e) { e.stopPropagation(); if (e.type === "touchend" && e.cancelable) e.preventDefault(); }
+    if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; armTap(); }
+    badgePass = !badgePass;
+    renderBadge();
   }
 
   // ===== cue panel =====
@@ -507,7 +529,24 @@ window.DrawScreen = (function () {
     disarmTap();
     var t = task; task = null;
     prevChar = t.char;   // D: this character becomes the "prior" for the next one
-    t.onDone({ completed: done, success: !!t._success, hintShown: !!t._hintShown, mistakes: t._mistakes || 0, gaveUp: !!t._gaveUp, skipped: false });
+    // Phase 25: FSRS records whatever the badge shows *now* (on advance), not what
+    // was drawn. If the user didn't touch the badge, pass the original nuanced
+    // result (Good/Hard/Again). If they toggled it, override to a clean pass or fail.
+    t.onDone(resultForAdvance(t));
+  }
+
+  function resultForAdvance(t) {
+    var pass = (badgePass === null || badgePass === undefined) ? !!t._success : badgePass;
+    if (pass === !!t._success) {
+      // unchanged — keep the system's nuanced result
+      return { completed: done, success: !!t._success, hintShown: !!t._hintShown, mistakes: t._mistakes || 0, gaveUp: !!t._gaveUp, skipped: false };
+    }
+    if (pass) {
+      // user upgraded fail -> pass: treat as a clean success (misclick / mistroke)
+      return { completed: true, success: true, hintShown: false, mistakes: 0, gaveUp: false, skipped: false };
+    }
+    // user downgraded pass -> fail: treat as a miss (had help / shouldn't get credit)
+    return { completed: done, success: false, hintShown: true, mistakes: t._mistakes || 0, gaveUp: false, skipped: false };
   }
 
   // ===== buttons =====
@@ -541,7 +580,7 @@ window.DrawScreen = (function () {
   function onPrior() {
     if (inPrior || !prevChar || (els.prior && els.prior.disabled)) return;
     inPrior = true;
-    priorSaved = { task: task, done: done, hintShown: hintShown, strokeData: strokeData,
+    priorSaved = { task: task, done: done, hintShown: hintShown, strokeData: strokeData, badgePass: badgePass,
                    stepLabel: els.stepLabel.textContent, progressLabel: els.progressLabel.textContent };
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
     disarmTap();
@@ -570,9 +609,10 @@ window.DrawScreen = (function () {
     els.progressLabel.textContent = s.progressLabel;
     renderCuePanel(task.char);
     if (done) {
-      // current was completed and held — re-render completed and re-arm tap-to-continue
+      // current was completed and held — re-render completed and re-arm tap-to-continue.
+      // Restore the badge exactly as the user left it (they may have toggled it).
       buildReadOnly(task.char, strokeData);
-      setStatus(task._success ? "Correct!" : "", task._success ? "good" : "bad");
+      badgePass = s.badgePass; renderBadge();
       setPrompt("Tap the character to continue.");
       armTap();
     } else {
@@ -627,6 +667,10 @@ window.DrawScreen = (function () {
     els.skip.addEventListener("click", onSkip);
     if (els.back) els.back.addEventListener("click", function () { if (onBack) onBack(); });
     if (els.prior) els.prior.addEventListener("click", onPrior);
+    if (els.status) {
+      els.status.addEventListener("click", toggleBadge);
+      els.status.addEventListener("touchend", toggleBadge, { passive: false });
+    }
   }
 
   return { init: init, run: run, stop: stop, componentHover: componentHover };
