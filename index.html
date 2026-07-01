@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;rect width='100' height='100' rx='20' fill='%232f6fed'/&gt;&lt;text x='50' y='52' font-size='64' text-anchor='middle' dominant-baseline='central' fill='white'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=27" />
+  <link rel="stylesheet" href="css/styles.css?v=28" />
 </head>
 <body>
   <main class="app-main">
@@ -239,8 +239,8 @@
         <div class="draw-main">
           <button id="draw-back" class="box-nav-btn" type="button" aria-label="Back">← Back</button>
           <div id="draw-target" class="writer-target"></div>
-          <!-- H: instruction text removed; only flow cues live here. -->
-          <p class="draw-status" id="draw-status" role="status" aria-live="polite"></p>
+          <!-- Phase 23 A: no status/instruction line; the ✓/✗ badge on the
+               buttons row is the only feedback. -->
           <div class="controls">
             <button id="draw-prior" class="btn btn-ghost" type="button" disabled>◀ Prior kanji</button>
             <button id="draw-reveal" class="btn btn-ghost" type="button">Show answer</button>
@@ -293,17 +293,17 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="vendor/hanzi-writer.min.js"></script>
   <script src="vendor/ts-fsrs.umd.js"></script>
-  <script src="data/kanji-meta.js?v=27"></script>
-  <script src="data/kanji-gen-1.js?v=27"></script>
-  <script src="data/kanji-gen-2.js?v=27"></script>
-  <script src="data/kanji-gen-3.js?v=27"></script>
-  <script src="data/kanji-gen-4.js?v=27"></script>
-  <script src="data/kanji-components.js?v=27"></script>
-  <script src="js/store.js?v=27"></script>
-  <script src="js/scheduler.js?v=27"></script>
-  <script src="js/clouddrive.js?v=27"></script>
-  <script src="js/filters.js?v=27"></script>
-  <script src="js/drawscreen.js?v=27"></script>
-  <script src="js/app.js?v=27"></script>
+  <script src="data/kanji-meta.js?v=28"></script>
+  <script src="data/kanji-gen-1.js?v=28"></script>
+  <script src="data/kanji-gen-2.js?v=28"></script>
+  <script src="data/kanji-gen-3.js?v=28"></script>
+  <script src="data/kanji-gen-4.js?v=28"></script>
+  <script src="data/kanji-components.js?v=28"></script>
+  <script src="js/store.js?v=28"></script>
+  <script src="js/scheduler.js?v=28"></script>
+  <script src="js/clouddrive.js?v=28"></script>
+  <script src="js/filters.js?v=28"></script>
+  <script src="js/drawscreen.js?v=28"></script>
+  <script src="js/app.js?v=28"></script>
 </body>
 </html>

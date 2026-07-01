@@ -220,10 +220,6 @@ html, body {
   border-radius: var(--radius); box-shadow: var(--shadow);
   padding: 1.25rem; display: flex; flex-direction: column; align-items: center;
 }
-.draw-status { margin: 0.5rem 0 0; min-height: 1.2rem; text-align: center; color: var(--muted); font-size: 0.9rem; }
-/* Phase 22 D: when there's no flow message, the line takes zero space so the
-   buttons sit directly under the draw box (result feedback is the ✓/✗ badge). */
-.draw-status:empty { display: none; }
 /* H: ✓/✗ result badge that lives on the buttons row. */
 .draw-result { font-size: 1.4rem; font-weight: 700; line-height: 1; min-width: 1.4rem; text-align: center; }
 .draw-result.good { color: var(--good); }
@@ -612,7 +608,6 @@ html, body {
 /* G: draw box — minimal side/bottom borders so the canvas dominates. */
 .draw-main { padding: 0.35rem 0.35rem 0.55rem; }
 .writer-target { max-width: 26rem; }
-.draw-status { margin: 0.3rem 0 0; min-height: 1.1rem; }
 .controls { margin-top: 0.5rem; }
 /* A: keep the floating nav button clear of the tighter mobile padding. */
 .box-nav-btn { top: 0.35rem; left: 0.35rem; }

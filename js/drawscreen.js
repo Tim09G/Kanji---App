@@ -62,8 +62,10 @@ window.DrawScreen = (function () {
       return r.json();
     });
   }
-  // Flow line under the box (tap-to-continue / moving-on cues, load errors).
-  function setPrompt(t) { els.prompt.textContent = t || ""; }
+  // Phase 23 A: no status/instruction text anywhere in the session flow. The
+  // ✓/✗ badge (setStatus) is the only feedback; this stays a no-op so the many
+  // flow-cue call sites keep working without printing anything.
+  function setPrompt() {}
   // H: the result badge on the buttons row. "good" -> green ✓, "bad" -> red ✗,
   // empty -> nothing (while drawing). The text becomes the badge's tooltip/a11y label.
   function setStatus(t, kind) {
@@ -118,8 +120,25 @@ window.DrawScreen = (function () {
     root.innerHTML = "";
     if (!meta) return;
 
-    if (settings.meaning !== false) {
-      // Phase 22 C: no "MEANING" header — the value is self-explanatory.
+    // Identity-revealing content stays hidden until the character is finished.
+    var revealed = !!(task && task.vocabRevealed);
+
+    if (revealed) {
+      // Phase 23 B: after drawing, show the typed kanji at the top in the same
+      // compact "一 — one" style as the Browse header (the char is the answer,
+      // so it only appears post-draw).
+      var head = document.createElement("div"); head.className = "info-head";
+      var ch = document.createElement("div"); ch.className = "info-char"; ch.textContent = meta.char;
+      head.appendChild(ch);
+      if (settings.meaning !== false) {
+        var dash = document.createElement("span"); dash.className = "info-dash"; dash.setAttribute("aria-hidden", "true"); dash.textContent = "—";
+        var mn = document.createElement("div"); mn.className = "info-meaning"; mn.textContent = meta.meaning;
+        if (meta.archaic) mn.appendChild(archaicTag(meta.modern));
+        head.appendChild(dash); head.appendChild(mn);
+      }
+      root.appendChild(head);
+    } else if (settings.meaning !== false) {
+      // Before drawing: meaning only (Phase 22 C — no "MEANING" header).
       var mb = document.createElement("div"); mb.className = "cue-block";
       var mv = document.createElement("div");
       mv.className = "cue-value";
@@ -147,7 +166,6 @@ window.DrawScreen = (function () {
 
     // F: compact paired metadata — Freq|JLPT, Radical|Variants, then Strokes.
     // Radical & Variants are identity hints, so they stay blank until post-draw.
-    var revealed = !!(task && task.vocabRevealed);
     var radInfo = radicalOf(meta.char);
     var metaBox = document.createElement("div"); metaBox.className = "info-meta cue-meta";
     function imField(k, v, hidden, vClass) {
@@ -565,7 +583,9 @@ window.DrawScreen = (function () {
       buildWriter(t.char, t.level);
       startQuiz(t.level);
     }).catch(function () {
-      setPrompt("Couldn't load stroke data. Run via a local server (see README).");
+      // No on-screen status text (Phase 23 A); log for diagnosis. Won't occur
+      // on a proper host — only when opened from file:// without a server.
+      console.error("Couldn't load stroke data for", t.char, "— run via a local server (see README).");
     });
   }
 

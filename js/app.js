@@ -906,7 +906,7 @@
     registerScreens();
     DrawScreen.init({
       target: $("draw-target"), cueSettings: $("cue-settings"), cueContent: $("cue-content"),
-      prompt: $("draw-status"), status: $("draw-result"),
+      prompt: null, status: $("draw-result"),
       modeLabel: $("draw-mode"), stepLabel: $("draw-step"), progressLabel: $("draw-progress"),
       reveal: $("draw-reveal"), skip: $("draw-skip"), back: $("draw-back"), prior: $("draw-prior"),
     }, { onBack: exitSession });
