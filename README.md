@@ -179,7 +179,13 @@ learned** and a tappable **due-for-review** count that updates live.
 ### Full kanji set
 **2,998 kanji**: every **jōyō** (2,136 regular-use) plus **jinmeiyō** (862
 name-use) character. Each one is generated from open data:
-- **Stroke order** from KanjiVG (HanziWriter format).
+- **Stroke order** converted directly from **KanjiVG** master SVGs (standard files
+  only, never `-Kaisho`/variant files) into HanziWriter format — outlines are
+  constant-width expansions of KanjiVG's stroke centerlines, so the drawn forms and
+  stroke order match KanjiVG's own viewer exactly. (An earlier build had used
+  AnimCJK-derived data whose glyph forms differed from Japanese standard for some
+  kanji, e.g. 線's 糸-bottom and 煙's 西 — corrected in Phase 30.) The 89
+  old-form/compatibility variants KanjiVG doesn't cover keep their bespoke files.
 - **Metadata** (meaning, on/kun readings, grade, JLPT, frequency rank, stroke
   count, classifying radical) from KANJIDIC2. JLPT levels use the "new" (N5–N1)
   scale, whose public data (`jlpt_new`) is incomplete for a set of common kanji
@@ -262,9 +268,11 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
   the radical filter groups by that glyph across the full set.
 - **Home counts** show total-learned and due-for-review, plus a **5-level mastery
   breakdown** derived from each card's FSRS stability (S, ≈ the day-interval at which
-  recall ~90%): **New** (untouched) · **Learning** (in Learn scaffolding) · **Mature**
-  (graduated, S < 30 d) · **Seasoned** (30–120 d) · **Mastered** (≥ 120 d and not
-  currently relapsed). Thresholds live in `js/scheduler.js` (`MATURE_MAX` /
+  recall ~90%): **New** (untouched) · **Learning** (in Learn scaffolding, OR in the
+  review pool with S < 7 d — i.e. the whole early-study period until intervals reach
+  a week, including bulk-marked kanji awaiting their first test) · **Mature** (7–45 d)
+  · **Seasoned** (45–180 d) · **Mastered** (≥ 180 d and not currently relapsed).
+  Thresholds live in `js/scheduler.js` (`LEARNING_MAX` / `MATURE_MAX` /
   `MASTERED_MIN`) and are easy to tune.
 - **Stroke data is uniformly local KanjiVG** — verified all kanji have valid local
   stroke files with no missing/fallback source (so the calligraphic look is the

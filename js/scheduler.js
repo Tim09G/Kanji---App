@@ -161,25 +161,25 @@ window.Scheduler = (function () {
     return l >= 4 || (l >= 3 && r > 0 && (l / r) >= 0.4);
   }
 
-  // ---- mastery levels (A) — derived from FSRS stability/state ----
-  // Thresholds (flagged to the user): a graduated card's FSRS stability S (≈ the
-  // day-interval at which recall ~90%):
-  //   mature   = graduated, S < 30 days        (settling in, up to ~1 month)
-  //   seasoned = 30 ≤ S < 120 days             (≈1–4 months)
-  //   mastered = S ≥ 120 days AND not currently relapsed (state ≠ Relearning)
-  // (A lapse resets S low, so a recently-lapsed kanji naturally falls out of the
-  // higher buckets — that captures "no recent lapses".)
-  var MATURE_MAX = 30, MASTERED_MIN = 120;
+  // ---- mastery levels (A, rebanded Phase 30) — from FSRS stability S (≈ the
+  // day-interval at which recall stays ~90%). "Learning" now covers the whole
+  // early-study period, not just the Learn scaffolding:
+  //   learning = in Learn scaffolding, OR in the review pool with S < 7 days
+  //              (≈ the first couple of successful reviews; also bulk-marked
+  //              kanji awaiting their first verification test)
+  //   mature   = 7 ≤ S < 45 days     (weekly-to-monthly intervals)
+  //   seasoned = 45 ≤ S < 180 days   (~1.5–6 months)
+  //   mastered = S ≥ 180 days AND not currently relapsed (state ≠ Relearning)
+  // (A lapse resets S low, so a lapsed kanji naturally falls back down the bands.)
+  var LEARNING_MAX = 7, MATURE_MAX = 45, MASTERED_MIN = 180;
   function levelFromEntry(p) {
     if (p && p.status === "review") {
-      // No card yet (bulk "Mark learned & due now", or graduation mid-write): the
-      // kanji IS graduated, just unmeasured — lowest graduated bucket, not "new"
-      // (Phase 29 audit fix; previously these showed as New on the home grid).
-      if (!p.fsrs) return "mature";
+      if (!p.fsrs) return "learning";   // unmeasured (bulk-marked): not yet established
       var s = p.fsrs.stability || 0;
       if (s >= MASTERED_MIN && p.fsrs.state !== lib.State.Relearning) return "mastered";
       if (s >= MATURE_MAX) return "seasoned";
-      return "mature";
+      if (s >= LEARNING_MAX) return "mature";
+      return "learning";
     }
     if (p && p.status === "learning") return "learning";
     return "new";

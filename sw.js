@@ -14,15 +14,16 @@
  * Two caches:
  *   SHELL  — app shell + full metadata/vocab datasets. Versioned; wiped & rebuilt
  *            on each release (VERSION bump).
- *   STROKE — stroke-order JSON (data/kanji/<char>.json, ~3000 immutable files).
- *            Persistent across releases (the files never change), cached on demand
- *            as kanji are drawn plus a one-time background bulk-cache requested by
+ *   STROKE — stroke-order JSON (data/kanji/<char>.json, ~3000 files). Persistent
+ *            across app releases; its own version bumps only when the stroke DATA
+ *            is regenerated (v2 = Phase 30 KanjiVG rebuild). Cached on demand as
+ *            kanji are drawn plus a one-time background bulk-cache requested by
  *            the page, so a full study session works offline.
  */
-var VERSION = "v35";
+var VERSION = "v36";
 var SHELL = "kanji-shell-" + VERSION;
-var STROKE = "kanji-strokes-v1";
-var V = "?v=35"; // keep in sync with the ?v=N on index.html's asset links
+var STROKE = "kanji-strokes-v2";
+var V = "?v=36"; // keep in sync with the ?v=N on index.html's asset links
 
 var PRECACHE = [
   "./", "index.html", "manifest.webmanifest", "icon.svg", "icon-maskable.svg",
