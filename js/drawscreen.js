@@ -577,7 +577,10 @@ window.DrawScreen = (function () {
     finish(task._mistakes || 99, true);
   }
   function onSkip() {
-    if (inPrior || !task) return;
+    // `done` guard (Phase 29 audit): once the character is finished the attempt is
+    // already graded — skipping then would discard the computed rating and record
+    // a skip (Again) instead. Same guard as onReveal.
+    if (inPrior || !task || done) return;
     if (writer) writer.cancelQuiz();
     disarmTap();
     var t = task; task = null;

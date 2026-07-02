@@ -6,12 +6,11 @@
  * now. The real FSRS algorithm (ts-fsrs, vendored) computes the next interval /
  * due date from the 4-point Again/Hard/Good/Easy rating.
  *
- * Rating mapping from the app's existing signals (Phase 4/5 redo→hint system):
- *   Again — failed: needed a hint, gave up, or skipped.
- *   Hard  — completed correctly but with at least one stroke redo (no hint).
- *   Good  — clean pass (no redos, no hint).
- *   Easy  — currently UNUSED: the app has no reliable signal to separate Easy
- *           from Good, so clean passes default to Good. (Flagged for the user.)
+ * Rating mapping (Phase 28, stroke-level): the draw screen computes an explicit
+ * rating from per-stroke misses/redos (Easy = flawless, Good = redos or 1 miss,
+ * Hard = 2 misses, Again = 3+/gave up; thresholds scale with stroke count) and
+ * passes it as result.rating. Only ratingless results (skips) use the legacy
+ * fallback below, which maps them to Again.
  *
  * Desired retention: FSRS standard default (0.9), not user-adjustable this round.
  *
@@ -172,7 +171,11 @@ window.Scheduler = (function () {
   // higher buckets — that captures "no recent lapses".)
   var MATURE_MAX = 30, MASTERED_MIN = 120;
   function levelFromEntry(p) {
-    if (p && p.status === "review" && p.fsrs) {
+    if (p && p.status === "review") {
+      // No card yet (bulk "Mark learned & due now", or graduation mid-write): the
+      // kanji IS graduated, just unmeasured — lowest graduated bucket, not "new"
+      // (Phase 29 audit fix; previously these showed as New on the home grid).
+      if (!p.fsrs) return "mature";
       var s = p.fsrs.stability || 0;
       if (s >= MASTERED_MIN && p.fsrs.state !== lib.State.Relearning) return "mastered";
       if (s >= MATURE_MAX) return "seasoned";
