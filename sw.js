@@ -19,10 +19,10 @@
  *            as kanji are drawn plus a one-time background bulk-cache requested by
  *            the page, so a full study session works offline.
  */
-var VERSION = "v33";
+var VERSION = "v34";
 var SHELL = "kanji-shell-" + VERSION;
 var STROKE = "kanji-strokes-v1";
-var V = "?v=33"; // keep in sync with the ?v=N on index.html's asset links
+var V = "?v=34"; // keep in sync with the ?v=N on index.html's asset links
 
 var PRECACHE = [
   "./", "index.html", "manifest.webmanifest", "icon.svg", "icon-maskable.svg",

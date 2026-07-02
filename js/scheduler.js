@@ -59,9 +59,19 @@ window.Scheduler = (function () {
 
   // ---- rating from an app result ----
   function ratingFor(result) {
+    // Phase 28: the draw screen supplies an explicit stroke-level rating.
+    if (result.rating) {
+      switch (result.rating) {
+        case "easy": return Rating.Easy;
+        case "good": return Rating.Good;
+        case "hard": return Rating.Hard;
+        default: return Rating.Again;
+      }
+    }
+    // Legacy fallback (e.g. a skip, which carries no rating).
     if (result.skipped || result.gaveUp || result.hintShown) return Rating.Again;
-    if ((result.mistakes || 0) >= 1) return Rating.Hard;   // at least one redo
-    return Rating.Good;                                     // clean pass
+    if ((result.mistakes || 0) >= 1) return Rating.Hard;
+    return Rating.Good;
   }
 
   // Feed one attempt's rating into FSRS and persist the new card.

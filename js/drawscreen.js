@@ -32,13 +32,15 @@ window.DrawScreen = (function () {
   var tapHandler = null;
   var advanceTimer = null;   // pending auto-advance timeout
   var onBack = null;         // callback for the back button
-  var hintShown = false;     // did the character ever need a hint (= overall failure)
   var prevChar = null;       // the previously-shown character (for "Prior kanji")
   var inPrior = false;       // currently viewing the prior character (read-only)
   var priorSaved = null;     // saved current-task state while viewing prior
-  var badgePass = null;      // Phase 25: current ✓/✗ badge state (null while drawing);
-                             // user can tap to toggle before advancing (overrides the
-                             // system result that FSRS records on advance).
+  // Phase 28: stroke-level grading. Per draw we count `misses` (strokes that needed
+  // the auto-hint: wrong on the first attempt AND the redo) and `redos` (wrong once,
+  // corrected on the redo). These map to an FSRS rating (Easy/Good/Hard/Again).
+  var misses = 0, redos = 0;
+  var computedRating = null; // "easy"|"good"|"hard"|"again" once finished (null while drawing)
+  var flipped = false;       // Phase 25/28: badge toggled away from the computed result
 
   // ---- helpers ----
   function kataToHira(s) {
@@ -66,35 +68,54 @@ window.DrawScreen = (function () {
     });
   }
   // Phase 23 A: no status/instruction text anywhere in the session flow. The
-  // ✓/✗ badge (setStatus) is the only feedback; this stays a no-op so the many
-  // flow-cue call sites keep working without printing anything.
+  // ✓/✗ badge is the only feedback; this stays a no-op so the many flow-cue call
+  // sites keep working without printing anything.
   function setPrompt() {}
-  // H: the result badge on the buttons row. "good" -> green ✓ (pass), "bad" -> red ✗
-  // (fail), empty -> nothing (while drawing). Kept as the single entry point so all
-  // existing call sites work; it just seeds the badge state that renderBadge() draws.
-  function setStatus(t, kind) {
-    badgePass = kind === "good" ? true : kind === "bad" ? false : null;
-    renderBadge(t);
+
+  // Phase 28: pass = Easy/Good, fail = Hard/Again.
+  function isPass(r) { return r === "easy" || r === "good"; }
+
+  // Stroke-level rating (Phase 28 B). Thresholds scale modestly with stroke count
+  // (+1 tolerated miss per ~10 strokes, capped), with a hard ceiling: 6+ misses is
+  // always Again no matter how complex the character.
+  function ratingFromStrokes(m, r, strokeCount) {
+    if (m >= 6) return "again";                                  // hard ceiling
+    var extra = Math.min(Math.floor((strokeCount || 0) / 10), 3);
+    if (m === 0 && r === 0) return "easy";                       // flawless: no misses, no redos
+    if (m <= 1 + extra) return "good";                           // 0 miss + redos, or 1 miss
+    if (m <= 2 + extra) return "hard";                           // 2 misses
+    return "again";                                              // 3+ misses
   }
-  // Phase 25 A: draw the badge from badgePass. Interactive (tappable) only when a
-  // result is showing; the label/title carries the reason for a11y.
-  function renderBadge(title) {
+
+  // Phase 28 D: the badge shows the computed result; tapping flips its polarity.
+  // Flipped-to-fail records Again (bottom); flipped-to-pass records Easy (top);
+  // flipping back restores the computed rating.
+  function effectiveRating() {
+    if (!computedRating) return null;
+    if (!flipped) return computedRating;
+    return isPass(computedRating) ? "again" : "easy";
+  }
+  function showResult(rating) { computedRating = rating; flipped = false; renderBadge(); }
+  function clearBadge() { computedRating = null; flipped = false; renderBadge(); }
+  function renderBadge() {
     var el = els.status; if (!el) return;
-    if (badgePass === true) { el.textContent = "✓"; el.className = "draw-result good"; el.hidden = false; }
-    else if (badgePass === false) { el.textContent = "✗"; el.className = "draw-result bad"; el.hidden = false; }
-    else { el.textContent = ""; el.className = "draw-result"; el.hidden = true; }
-    var label = title !== undefined ? (title || "")
-      : (badgePass === true ? "Marked correct — tap to change" : badgePass === false ? "Marked incorrect — tap to change" : "");
+    var r = effectiveRating();
+    if (!r) { el.textContent = ""; el.className = "draw-result"; el.hidden = true; el.title = ""; el.setAttribute("aria-label", ""); return; }
+    var pass = isPass(r);
+    el.textContent = pass ? "✓" : "✗";
+    el.className = "draw-result " + (pass ? "good" : "bad");
+    el.hidden = false;
+    var label = (pass ? "Marked correct" : "Marked incorrect") + " — tap to change";
     el.title = label; el.setAttribute("aria-label", label);
   }
-  // Phase 25 A: tapping the badge flips pass<->fail. If an auto-advance countdown is
-  // running it is cancelled first, so the user has time to decide; they then advance
-  // by tapping the character (the normal tap-to-continue). Works for mouse + touch.
+  // Phase 25/28: tapping the badge flips pass<->fail. If an auto-advance countdown is
+  // running it is cancelled first so the user has time to decide; they then advance by
+  // tapping the character (the normal tap-to-continue). Works for mouse + touch.
   function toggleBadge(e) {
-    if (badgePass === null || badgePass === undefined || inPrior || !done) return;
+    if (!computedRating || inPrior || !done) return;
     if (e) { e.stopPropagation(); if (e.type === "touchend" && e.cancelable) e.preventDefault(); }
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; armTap(); }
-    badgePass = !badgePass;
+    flipped = !flipped;
     renderBadge();
   }
 
@@ -421,13 +442,13 @@ window.DrawScreen = (function () {
       // One redo per stroke, then auto-show the hint on the 2nd miss (B1).
       showHintAfterMisses: 2,
       onCorrectStroke: function (info) {
+        // Phase 28: classify the stroke just completed. mistakesOnStroke counts wrong
+        // attempts before it went in: 0 = first try, 1 = one redo, >=2 = needed the hint.
+        var m = (info && info.mistakesOnStroke) || 0;
+        if (m >= 2) misses++; else if (m === 1) redos++;
         var nextStroke = info.strokeNum + 1;
         if (level === "guided" && info.strokesRemaining > 0) writer.highlightStroke(nextStroke);
         if (level === "start") showStartMarker(nextStroke);
-      },
-      onMistake: function (info) {
-        // A hint is shown once a stroke has been missed twice -> overall failure.
-        if (info && info.mistakesOnStroke >= 2) hintShown = true;
       },
       onComplete: function (summary) {
         clearMarker();
@@ -445,32 +466,30 @@ window.DrawScreen = (function () {
     if (done) return;
     done = true;
     var t = task;
-    t._mistakes = mistakes;
-    // Success = completed without ever needing a hint, and didn't give up (B1/B2).
-    var success = !gaveUp && !hintShown;
-    t._success = success;
-    t._hintShown = hintShown;
+    // Phase 28: rating from the stroke-level miss/redo counts (giving up = Again).
+    var strokeCount = strokeData && strokeData.strokes ? strokeData.strokes.length : ((metaFor(t.char) || {}).strokeCount || 0);
+    var rating = gaveUp ? "again" : ratingFromStrokes(misses, redos, strokeCount);
+    t._misses = misses; t._redos = redos; t._gaveUp = gaveUp;
+    t._computedRating = rating;
+    var pass = isPass(rating);
+    t._success = pass;   // legacy field still read by the session flow
 
     // Reveal vocab written form + readings + meaning, and the radical (D4/D5).
     t.vocabRevealed = true;
     renderCueContent(t.char);
     applyHighlights(t.char);   // colour the radical + enable component hover (C2/C3)
 
-    var isReviewFail = (t.kind === "review" && !success);
-    // On a failed/given-up review attempt, reveal the correct character (B2.1).
+    // Fail = Hard or Again (Phase 28 C). A failed review reveals the character.
+    var isReviewFail = (t.kind === "review" && !pass);
     if (isReviewFail && writer) writer.showCharacter();
 
-    if (success) setStatus("Correct!", "good");
-    else if (gaveUp) setStatus("Answer shown.", "bad");
-    else setStatus("Needed a hint — counts as a miss.", "bad");
+    showResult(rating);   // ✓ for Easy/Good, ✗ for Hard/Again
 
     if (isReviewFail) {
       // Hold here; the review must not auto-progress past a failed character (B2.2).
-      setPrompt("Tap the character to continue.");
       armTap();
     } else {
-      // Cancelable auto-advance (B5) — used for correct answers, learn steps,
-      // and the scaffolding side-loop (which pauses 1s then progresses, B2.4).
+      // Cancelable auto-advance (B5) — correct answers, learn steps, scaffolding.
       startAutoAdvance();
     }
   }
@@ -529,24 +548,24 @@ window.DrawScreen = (function () {
     disarmTap();
     var t = task; task = null;
     prevChar = t.char;   // D: this character becomes the "prior" for the next one
-    // Phase 25: FSRS records whatever the badge shows *now* (on advance), not what
-    // was drawn. If the user didn't touch the badge, pass the original nuanced
-    // result (Good/Hard/Again). If they toggled it, override to a clean pass or fail.
+    // Phase 25/28: FSRS records whatever the badge implies *now* (on advance): the
+    // computed rating, or Easy/Again if the user overrode it. success drives the
+    // failure flow + results score, so both follow the badge state too.
     t.onDone(resultForAdvance(t));
   }
 
   function resultForAdvance(t) {
-    var pass = (badgePass === null || badgePass === undefined) ? !!t._success : badgePass;
-    if (pass === !!t._success) {
-      // unchanged — keep the system's nuanced result
-      return { completed: done, success: !!t._success, hintShown: !!t._hintShown, mistakes: t._mistakes || 0, gaveUp: !!t._gaveUp, skipped: false };
-    }
-    if (pass) {
-      // user upgraded fail -> pass: treat as a clean success (misclick / mistroke)
-      return { completed: true, success: true, hintShown: false, mistakes: 0, gaveUp: false, skipped: false };
-    }
-    // user downgraded pass -> fail: treat as a miss (had help / shouldn't get credit)
-    return { completed: done, success: false, hintShown: true, mistakes: t._mistakes || 0, gaveUp: false, skipped: false };
+    var rating = effectiveRating() || t._computedRating || "again";
+    return {
+      completed: done,
+      success: isPass(rating),
+      rating: rating,
+      misses: t._misses || 0,
+      redos: t._redos || 0,
+      mistakes: t._misses || 0,   // difficulty stats key on this count
+      gaveUp: !!t._gaveUp,
+      skipped: false,
+    };
   }
 
   // ===== buttons =====
@@ -580,15 +599,15 @@ window.DrawScreen = (function () {
   function onPrior() {
     if (inPrior || !prevChar || (els.prior && els.prior.disabled)) return;
     inPrior = true;
-    priorSaved = { task: task, done: done, hintShown: hintShown, strokeData: strokeData, badgePass: badgePass,
+    priorSaved = { task: task, done: done, strokeData: strokeData,
+                   misses: misses, redos: redos, computedRating: computedRating, flipped: flipped,
                    stepLabel: els.stepLabel.textContent, progressLabel: els.progressLabel.textContent };
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
     disarmTap();
     if (writer) { try { writer.cancelQuiz(); } catch (e) {} }
     if (els.prior) els.prior.disabled = true;
     els.stepLabel.textContent = "◀ Previous kanji";
-    setStatus("");
-    setPrompt("Showing the previous kanji — tap it to return.");
+    clearBadge();
     task = { char: prevChar, vocabRevealed: true };   // stub so cues render fully
     renderCuePanel(prevChar);
     var pc = prevChar;
@@ -604,7 +623,8 @@ window.DrawScreen = (function () {
     inPrior = false;
     disarmTap();
     var s = priorSaved; priorSaved = null;
-    task = s.task; done = s.done; hintShown = s.hintShown; strokeData = s.strokeData;
+    task = s.task; done = s.done; strokeData = s.strokeData;
+    misses = s.misses; redos = s.redos;
     els.stepLabel.textContent = s.stepLabel;
     els.progressLabel.textContent = s.progressLabel;
     renderCuePanel(task.char);
@@ -612,13 +632,11 @@ window.DrawScreen = (function () {
       // current was completed and held — re-render completed and re-arm tap-to-continue.
       // Restore the badge exactly as the user left it (they may have toggled it).
       buildReadOnly(task.char, strokeData);
-      badgePass = s.badgePass; renderBadge();
-      setPrompt("Tap the character to continue.");
+      computedRating = s.computedRating; flipped = s.flipped; renderBadge();
       armTap();
     } else {
       // current not yet drawn — resume the quiz fresh
-      hintShown = false;
-      setPrompt("");
+      misses = 0; redos = 0;
       buildWriter(task.char, task.level);
       startQuiz(task.level);
       if (els.prior) els.prior.disabled = !prevChar;
@@ -629,14 +647,14 @@ window.DrawScreen = (function () {
   // task = { char, level, scaffold, modeLabel, stepLabel, progressLabel, onDone }
   function run(t) {
     task = t;
-    done = false; advancing = false; hintShown = false; task.vocabRevealed = false;
+    done = false; advancing = false; task.vocabRevealed = false;
+    misses = 0; redos = 0;              // Phase 28: fresh stroke-grade counters
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
     disarmTap(); clearHighlights();
     els.modeLabel.textContent = t.modeLabel || "";
     els.stepLabel.textContent = t.stepLabel || "";
     els.progressLabel.textContent = t.progressLabel || "";
-    setStatus("");
-    setPrompt("");                      // H: nothing shown while drawing
+    clearBadge();                       // no result yet
     renderCuePanel(t.char);
     if (els.prior) els.prior.disabled = !prevChar;  // D: enabled if there is a previous character
 

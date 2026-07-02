@@ -222,10 +222,17 @@ Works **offline** — the renderer and all stroke data are bundled in the repo.
   date; that drives "due for review", "most overdue" sorting and the home count.
   Per-kanji FSRS card state (stability, difficulty, due, reps, lapses…) is stored
   in localStorage. Notes on configuration:
-  - **Rating mapping** from the app's signals: **Again** = needed a hint / gave up /
-    skipped; **Hard** = clean completion but with ≥1 stroke redo; **Good** = clean
-    pass with no redos. **Easy is currently unused** — there's no reliable existing
-    signal to separate it from Good, so clean passes default to Good (flagged).
+  - **Rating mapping** is **stroke-level** (Phase 28). Every stroke is drawn
+    individually, so we count *misses* (a stroke wrong on the first attempt **and**
+    the redo, forcing the auto-hint) and *redos* (wrong once, right on the retry):
+    **Easy** = flawless (0 misses, 0 redos) · **Good** = 0 misses with ≥1 redo, or
+    exactly 1 miss · **Hard** = 2 misses · **Again** = 3+ misses (or gave up). The
+    miss thresholds scale up modestly for long kanji (+1 tolerated miss per ~10
+    strokes, capped at +3), with a hard ceiling: **6+ misses is always Again**.
+    **Pass** = Easy/Good (green ✓), **fail** = Hard/Again (red ✗) — fail triggers the
+    reveal + scaffolding-retry flow. The tappable result badge overrides the rating
+    at advance time: flipping a pass to fail records **Again**, a fail to pass records
+    **Easy**, and flipping back restores the computed rating.
   - **Desired retention** = FSRS standard default (0.9); not user-adjustable yet.
   - **Short-term (minute-scale) learning steps are disabled** so intervals are
     day-scale from the first review — within-session learning is already handled by
