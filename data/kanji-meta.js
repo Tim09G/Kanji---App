@@ -46,7 +46,7 @@ window.KANJI_META = [
     { jp: "十二", r: [{ t: "じゅう" }, { t: "に", b: true }], en: "twelve", reading: "に" },
   ]},
   { char: "三", meaning: "three", on: ["サン", "ゾウ"], kun: ["み", "み.つ", "みっ.つ"], grade: 1, jlpt: 5, freq: 14, strokeCount: 3,
-    radical: { char: "Ground", name: "Ground" }, similar: ["五","丑","且","天","上","旦","万","与","正","下","丁","七","今","写"], vocab: [
+    radical: { char: "Ground", name: "Ground" }, similar: ["五","丑","且","天","上","旦","万","与","正","下","丁","七","号","司","丘","王","今"], vocab: [
     { jp: "三つ", r: [{ t: "みっ", b: true }, { t: "つ" }], en: "three (things)", reading: "み" },
     { jp: "三日", r: [{ t: "みっ", b: true }, { t: "か" }], en: "the 3rd; three days", reading: "み" },
     { jp: "三月", r: [{ t: "さん", b: true }, { t: "がつ" }], en: "March", reading: "さん" },
@@ -146,7 +146,7 @@ window.KANJI_META = [
     { jp: "山林", r: [{ t: "さん", b: true }, { t: "りん" }], en: "mountains and forests", reading: "さん" },
   ]},
   { char: "川", meaning: "river", on: ["セン"], kun: ["かわ"], grade: 1, jlpt: 5, freq: 181, strokeCount: 3,
-    radical: { char: "River", name: "River" }, similar: ["州","巡","災","拶","釧","侃","訓","馴","順","巣","流","硫","山","小"], vocab: [
+    radical: { char: "River", name: "River" }, similar: ["州","巡","災","拶","釧","侃","訓","馴","順","巣","流","硫","琉","洲","荒","山","小"], vocab: [
     { jp: "川", r: [{ t: "かわ", b: true }], en: "river", reading: "かわ" },
     { jp: "川口", r: [{ t: "かわ", b: true }, { t: "ぐち" }], en: "river mouth; (surname)", reading: "かわ" },
     { jp: "小川", r: [{ t: "お" }, { t: "がわ", b: true }], en: "stream", reading: "かわ" },

@@ -99,12 +99,26 @@ const CLASSICS = [
   "縁緑", "貧貪", "壁璧", "捨拾", "網綱鋼", "薄簿", "暦歴", "免兎", "孑子",
   "汗汁", "住往", "困因", "旅族", "帥師", "候侯", "萩荻", "崇祟", "微徹徹",
   "斤斥", "刺剌", "冶治", "沢択", "積績", "峰蜂逢", "凡几", "毫豪", "延廷",
+  "線緑縁",
 ].map(g => [...g].filter(c => inSet.has(c))).filter(g => g.length >= 2);
 
 // ---- combine ----
-const SHAPE_T = 0.80, COMP_T = 0.18, CAP = 12, HARD_CAP = 14;
+const SHAPE_T = 0.80, COMP_T = 0.18, CAP = 15, HARD_CAP = 17;
 const result = {};
 chars.forEach(ch => result[ch] = new Map());
+
+// Same classifying radical + similar overall shape = the classic high-confusion
+// class (線/緑/縁/綿…): identical left half + similar-looking other half. Graded
+// bonus (with a slightly lower shape floor) so these outrank generic cross-radical
+// shape-mates; the floor keeps dissimilar radical-mates out.
+const radOf = {};
+meta.forEach(m => { radOf[m.char] = (m.radical && m.radical.char) || null; });
+function pairScore(a, b, ss, cs) {
+  let s = 0.55 * ss + 0.45 * Math.min(cs * 1.6, 1) +
+          Math.max(0, 1 - Math.abs(strokeN[a] - strokeN[b]) / 6) * 0.06;
+  if (radOf[a] && radOf[a] === radOf[b] && ss >= 0.76) s += 0.12 + (ss - 0.76) * 0.5;
+  return s;
+}
 
 // component-channel candidates via inverted index (skip mega-common elements for
 // candidate generation only — they still contribute to scores)
@@ -119,9 +133,9 @@ chars.forEach(a => {
     if (a >= b) return;   // score each unordered pair once
     const cs = compScore(a, b);
     const ss = shapeScore(a, b);
-    if (cs < COMP_T && ss < SHAPE_T) return;
-    const bonus = Math.max(0, 1 - Math.abs(strokeN[a] - strokeN[b]) / 6) * 0.06;
-    const score = 0.55 * ss + 0.45 * Math.min(cs * 1.6, 1) + bonus;
+    const sameRad = radOf[a] && radOf[a] === radOf[b] && ss >= 0.76;
+    if (cs < COMP_T && ss < SHAPE_T && !sameRad) return;
+    const score = pairScore(a, b, ss, cs);
     result[a].set(b, Math.max(result[a].get(b) || 0, score));
     result[b].set(a, Math.max(result[b].get(a) || 0, score));
   });
@@ -135,9 +149,9 @@ chars.forEach(a => {
       if (a >= b) return;
       if (result[a].has(b)) return;
       const ss = shapeScore(a, b);
-      if (ss < SHAPE_T) return;
-      const bonus = Math.max(0, 1 - Math.abs(strokeN[a] - strokeN[b]) / 6) * 0.06;
-      const score = 0.55 * ss + bonus;
+      const sameRad = radOf[a] && radOf[a] === radOf[b] && ss >= 0.76;
+      if (ss < SHAPE_T && !sameRad) return;
+      const score = pairScore(a, b, ss, 0);
       result[a].set(b, score); result[b].set(a, score);
     });
   }
@@ -176,6 +190,9 @@ const check = (a, b) => (lists[a] || []).includes(b);
 console.log("土→士", check("土", "士"), "| 力→刀", check("力", "刀"), "| 未→末", check("未", "末"), "| 干→千", check("干", "千"));
 console.log("網→綱", check("網", "綱"), "| 網→鋼", check("網", "鋼"), "| 綱→鋼", check("綱", "鋼"), "| 綱→網", check("綱", "網"));
 console.log("巢→巣", check("巢", "巣"));
+console.log("線→緑", check("線", "緑"), "| 緑→線", check("緑", "線"), "| 線→縁", check("線", "縁"), "| 線→綿", check("線", "綿"));
+console.log("sample 線:", (lists["線"] || []).join(" "));
+console.log("sample 語:", (lists["語"] || []).join(" "));
 let empty = 0, total = 0;
 chars.forEach(c => { total += lists[c].length; if (!lists[c].length) empty++; });
 console.log("empty lists:", empty, "| avg size:", (total / chars.length).toFixed(1));
