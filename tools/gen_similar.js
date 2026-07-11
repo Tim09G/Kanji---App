@@ -34,8 +34,12 @@ chars.forEach(ch => {
   const set = new Set();
   if (fs.existsSync(fp)) {
     const txt = fs.readFileSync(fp, "utf8");
-    for (const m of txt.matchAll(/kvg:element="([^"]+)"/g)) if (m[1] !== ch) set.add(m[1]);
-    for (const m of txt.matchAll(/kvg:original="([^"]+)"/g)) if (m[1] !== ch) set.add(m[1]);
+    // include the kanji ITSELF as an element (identity + parts): this is what lets
+    // a kanji match the characters that contain it (之 inside 芝/乏, 台 inside 治).
+    // Excluding self here was the containment blind spot.
+    for (const m of txt.matchAll(/kvg:element="([^"]+)"/g)) set.add(m[1]);
+    for (const m of txt.matchAll(/kvg:original="([^"]+)"/g)) set.add(m[1]);
+    set.add(ch);
   }
   elems[ch] = [...set];
   set.forEach(e => df[e] = (df[e] || 0) + 1);
@@ -99,7 +103,7 @@ const CLASSICS = [
   "縁緑", "貧貪", "壁璧", "捨拾", "網綱鋼", "薄簿", "暦歴", "免兎", "孑子",
   "汗汁", "住往", "困因", "旅族", "帥師", "候侯", "萩荻", "崇祟", "微徹徹",
   "斤斥", "刺剌", "冶治", "沢択", "積績", "峰蜂逢", "凡几", "毫豪", "延廷",
-  "線緑縁", "将浮",
+  "線緑縁", "将浮", "之芝乏",
 ].map(g => [...g].filter(c => inSet.has(c))).filter(g => g.length >= 2);
 
 // ---- combine ----
@@ -132,6 +136,9 @@ function pairScore(a, b, ss, cs) {
   if (radOf[a] && radOf[a] === radOf[b] && ss >= 0.76) s += 0.12 + (ss - 0.76) * 0.5;
   const dw = distinctShared(a, b);
   if (dw > 0) s = Math.max(s, 0.40 + 0.25 * ss + Math.min((dw - 0.2) * 0.5, 0.1) + strokeBonus);
+  // Containment (one IS a component of the other — 之/芝, 台/治): the strongest
+  // confusion signal; ranks just below direct near-twins.
+  if (elems[b].indexOf(a) >= 0 || elems[a].indexOf(b) >= 0) s = Math.max(s, 0.62 + 0.15 * ss + strokeBonus);
   return s;
 }
 
@@ -207,6 +214,8 @@ console.log("網→綱", check("網", "綱"), "| 網→鋼", check("網", "鋼")
 console.log("巢→巣", check("巢", "巣"));
 console.log("線→緑", check("線", "緑"), "| 緑→線", check("緑", "線"), "| 線→縁", check("線", "縁"), "| 線→綿", check("線", "綿"));
 console.log("将→浮", check("将", "浮"), "| 浮→将", check("浮", "将"));
+console.log("之→芝", check("之", "芝"), "| 之→乏", check("之", "乏"), "| 芝→之", check("芝", "之"), "| 台→治", check("台", "治"));
+console.log("sample 之:", (lists["之"] || []).join(" "));
 console.log("sample 将:", (lists["将"] || []).join(" "));
 console.log("sample 浮:", (lists["浮"] || []).join(" "));
 console.log("sample 線:", (lists["線"] || []).join(" "));
