@@ -32,6 +32,10 @@ window.Filters = (function () {
   function uniqueSorted(arr) {
     return arr.filter(function (v, i, a) { return a.indexOf(v) === i; }).sort(function (a, b) { return a - b; });
   }
+  // kun'yomi stem: the reading up to the "." okurigana marker, "-" prefixes dropped
+  // (e.g. "はし.る" -> "はしる"? no — stem is "はし"; "ひと-" -> "ひと").
+  function kunStem(r) { return String(r).split(".")[0].replace(/-/g, ""); }
+  function unique(v, i, a) { return a.indexOf(v) === i; }
 
   var DEFS = {
     // Learning status (New / Learning / Due for review / Learned).
@@ -194,7 +198,9 @@ window.Filters = (function () {
     },
 
     // (A) Visually/structurally similar to a chosen kanji (any kanji; includes it).
-    // UI is a kanji text input rather than a fixed dropdown.
+    // UI is a kanji text input rather than a fixed dropdown. Phase 31: the underlying
+    // meta.similar lists are multi-signal (shared components + visual shape +
+    // stroke-count proximity + curated confusables).
     similar: {
       id: "similar",
       label: "Similar to",
@@ -205,6 +211,40 @@ window.Filters = (function () {
         set[base] = true;
         (m && m.similar || []).forEach(function (c) { set[c] = true; });
         return function (char) { return !!set[char]; };
+      },
+    },
+
+    // Phase 31: kanji sharing a READING with the chosen one — sounds-alike, kept as
+    // its own toggle (never blended into the visual similarity score). Matches on
+    // any shared on'yomi, or any shared kun'yomi stem (the part before the "." that
+    // marks okurigana).
+    similarReading: {
+      id: "similarReading",
+      label: "Similar reading",
+      ui: "kanji",
+      hintFor: function (base) {
+        var m = meta(base);
+        if (!m) return "";
+        var on = (m.on || []).join("、");
+        var kun = (m.kun || []).map(kunStem).filter(unique).join("、");
+        var parts = [];
+        if (on) parts.push("音 " + on);
+        if (kun) parts.push("訓 " + kun);
+        return parts.length ? ("readings: " + parts.join("　")) : "no readings";
+      },
+      predicate: function (base) {
+        var m = meta(base);
+        var ons = {}, kuns = {};
+        (m && m.on || []).forEach(function (r) { ons[r] = true; });
+        (m && m.kun || []).forEach(function (r) { kuns[kunStem(r)] = true; });
+        return function (char) {
+          if (char === base) return true;
+          var c = meta(char);
+          if (!c) return false;
+          for (var i = 0; i < (c.on || []).length; i++) if (ons[c.on[i]]) return true;
+          for (var j = 0; j < (c.kun || []).length; j++) if (kuns[kunStem(c.kun[j])]) return true;
+          return false;
+        };
       },
     },
 

@@ -444,8 +444,12 @@
       for (var i = 0; i < v.length; i++) { if (/[㐀-鿿]/.test(v[i])) { ch = v[i]; break; } }
       if (!ch || !metaOf(ch)) { delete values[def.id]; hint.textContent = ch ? "Not in the set." : ""; return; }
       values[def.id] = ch;
-      var sim = metaOf(ch).similar || [];
-      hint.textContent = sim.length ? ("similar: " + sim.join(" ")) : "no similar characters found";
+      if (def.hintFor) {                      // Phase 31: def-specific hint (e.g. readings)
+        hint.textContent = def.hintFor(ch);
+      } else {
+        var sim = metaOf(ch).similar || [];
+        hint.textContent = sim.length ? ("similar: " + sim.join(" ")) : "no similar characters found";
+      }
     });
     row.appendChild(inp); row.appendChild(hint);
   }

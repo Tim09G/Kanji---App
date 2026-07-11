@@ -58,7 +58,15 @@ mixing new and due characters behaves consistently.
   - **JLPT level** and **School grade** (from KANJIDIC2).
   - **Stroke count**, **Radical**.
   - **Similar to** — type/enter **any** kanji; filters to it and its
-    visually/structurally similar characters.
+    visually/structurally similar characters. Similarity is **multi-signal**
+    (Phase 31): shared components weighted by rarity (網/綱/鋼-type families),
+    overall **visual shape** similarity computed from the stroke data (catches
+    look-alikes with *no* shared parts — 土/士, 力/刀, 未/末, 干/千), stroke-count
+    proximity as a tiebreaker, plus a curated list of classic confusable groups.
+    Biased broad: every kanji has at least a few loose matches.
+  - **Similar reading** — a **separate** sounds-alike filter (never blended into
+    the visual score): type a kanji to surface every kanji sharing one of its
+    on'yomi or a kun'yomi stem (the part before the okurigana dot).
   - **Group** — an iOS-style **scroll-picker**: one wheel for block size (25/50/100/200)
     and one to scroll between blocks (the blocks follow the active display order).
 - **Sort**: study order (JLPT), **ungrouped (plain list)**, **grade level**,
@@ -199,7 +207,9 @@ name-use) character. Each one is generated from open data:
   their real (less-common) words. A small number of very rare characters have few or
   no example words; that's expected.
 - **Radical & component highlighting** from KanjiVG, and a **"Similar to"** list
-  computed across the whole set by shared components.
+  computed across the whole set by a multi-signal generator (`tools/gen_similar.js`):
+  full KanjiVG element decomposition weighted by rarity + shape similarity from the
+  stroke data + stroke-count proximity + curated classic confusables.
 - **Archaic/variant forms** (compatibility-ideograph codepoints like 社 U+FA4C that
   KANJIDIC2 doesn't define separately) borrow the **meaning and readings of their
   modern equivalent** (found via Unicode NFKC) and are marked with an **"\*archaic"**
