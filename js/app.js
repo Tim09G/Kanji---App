@@ -197,6 +197,8 @@
     var vars = (window.KANJI_VARIANTS || {})[char];
     $("browse-variants").textContent = vars && vars.length
       ? vars.map(function (v) { return v.char + (v.name ? "（" + v.name + "）" : ""); }).join("、") : "—";
+    // Phase 32 B: alternate stylistic forms (display-only reference)
+    if (window.Versions) Versions.fill($("browse-versions"), char);
     // F: full vocabulary list (with audio)
     renderBrowseVocab(meta);
     $("browse-target").innerHTML = "";
@@ -980,6 +982,10 @@
     $("nav-browse").addEventListener("click", openBrowse);
     $("nav-study").addEventListener("click", function () { openList("Study", "screen-home"); });
     $("nav-settings").addEventListener("click", openSettings);
+    // Phase 32 A: stats screen (read-only; recomputed on every open)
+    $("nav-stats").addEventListener("click", function () { Stats.render(); show("screen-stats"); });
+    // stats "trouble kanji" chips jump straight to that kanji in Browse
+    window.__openBrowseAt = function (c) { openBrowse(); browseSelect(c); };
     $("home-due").addEventListener("click", function () { if (!$("home-due").disabled) startDueReview("screen-home", Filters.DEFAULT_SORT); });
 
     Array.prototype.forEach.call(document.querySelectorAll("[data-home]"), function (b) { b.addEventListener("click", goHome); });

@@ -90,7 +90,7 @@ html, body {
   display: grid; gap: 1rem;
   grid-template-columns: 1fr;
 }
-@media (min-width: 620px) { .home-menu { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 620px) { .home-menu { grid-template-columns: repeat(2, 1fr); } }  /* 2x2 with the Stats card */
 .mode-card {
   display: flex; flex-direction: column; align-items: flex-start; gap: 0.35rem;
   text-align: left;
@@ -209,6 +209,60 @@ html, body {
   opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Phase 32 B: "Versions" reference chips + tap-to-enlarge modal (display-only). */
+.version-chip {
+  font: inherit; font-size: 0.78rem; line-height: 1; cursor: pointer;
+  padding: 0.14rem 0.4rem; margin-left: 0.25rem; border-radius: 8px;
+  border: 1px solid var(--accent); color: var(--accent); background: transparent;
+}
+.version-chip:hover { background: var(--accent); color: var(--accent-ink); }
+.version-modal {
+  position: fixed; inset: 0; z-index: 60; display: flex;
+  align-items: center; justify-content: center;
+  background: rgba(16, 24, 40, 0.55); cursor: pointer;
+}
+.version-modal[hidden] { display: none; }   /* display:flex must not defeat `hidden` */
+.version-box {
+  background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 1rem; text-align: center;
+}
+.version-box img { width: min(70vw, 300px); height: min(70vw, 300px); display: block; }
+.version-cap { margin-top: 0.5rem; color: var(--muted); font-size: 0.9rem; }
+
+/* ============ Phase 32 A — stats screen ============ */
+.stats-card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 0.9rem 1rem; margin-bottom: 0.9rem;
+}
+.stats-card h3 { margin: 0 0 0.3rem; font-size: 1rem; }
+.stats-hint { font-size: 0.82rem; margin: 0 0 0.6rem; }
+.stats-chart { width: 100%; height: auto; display: block; }
+.stats-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 0.9rem; }
+.stats-tile {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); text-align: center; padding: 0.6rem 0.25rem;
+}
+.stats-num { font-weight: 700; font-size: clamp(1rem, 4.5vw, 1.4rem); line-height: 1.1; }
+.stats-lab { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.03em; margin-top: 0.2rem; }
+.stats-bars { display: flex; flex-direction: column; gap: 0.35rem; }
+.stats-bar-row { display: flex; align-items: center; gap: 0.5rem; }
+.stats-bar-label { width: 4.6rem; font-size: 0.78rem; color: var(--muted); text-align: right; flex-shrink: 0; }
+.stats-bar-track { flex: 1; background: transparent; }
+.stats-bar-fill { height: 12px; border-radius: 4px; min-width: 2px; }
+.stats-bar-num { width: 2.8rem; font-size: 0.82rem; font-weight: 600; }
+.mastery-fill-new { background: #c3cbd4; }
+.mastery-fill-learning { background: #c98f1b; }
+.mastery-fill-mature { background: var(--accent); }
+.mastery-fill-seasoned { background: var(--good); }
+.mastery-fill-mastered { background: #b8860b; }
+.stats-leeches { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.leech-chip {
+  font: inherit; font-size: 1.15rem; padding: 0.2rem 0.45rem; cursor: pointer;
+  border: 1px solid var(--bad); color: var(--bad); background: transparent; border-radius: 8px;
+}
+.leech-chip:hover { background: var(--bad); color: #fff; }
 
 .select-grid {
   display: grid; gap: 0.5rem;

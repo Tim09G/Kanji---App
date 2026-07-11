@@ -88,7 +88,12 @@ window.Scheduler = (function () {
     stats.attempts += 1;
     stats.mistakes += (result.mistakes || 0);
     Store.saveProgress(char, { stats: stats });
-    return review(char, ratingFor(result));
+    var rating = ratingFor(result);
+    // Phase 32 A: per-review history for the stats screen (pass = Good/Easy,
+    // matching the Phase 28 pass/fail definition). This is the ONLY recording
+    // choke point (Phase 29 audit), so the log captures every review exactly once.
+    Store.appendHistory({ t: now(), c: char, r: rating, p: rating >= Rating.Good });
+    return review(char, rating);
   }
 
   // ---- due / scheduling queries (all from FSRS card.due) ----

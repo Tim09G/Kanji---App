@@ -207,8 +207,9 @@ window.DrawScreen = (function () {
       root.appendChild(rb);
     }
 
-    // F: compact paired metadata — Freq|JLPT, Radical|Variants, then Strokes.
-    // Radical & Variants are identity hints, so they stay blank until post-draw.
+    // F/Phase 32 B: compact paired metadata — Freq|JLPT, Strokes|Radical,
+    // Variants|Versions. Identity-revealing fields (Radical, Variants, Versions)
+    // stay blank until post-draw.
     var radInfo = radicalOf(meta.char);
     var metaBox = document.createElement("div"); metaBox.className = "info-meta cue-meta";
     function imField(k, v, hidden, vClass) {
@@ -223,10 +224,18 @@ window.DrawScreen = (function () {
     var jlptVal = meta.jlpt ? ("N" + meta.jlpt) : "—";
     metaBox.appendChild(imRow([imField("Freq", freqVal), imField("JLPT", jlptVal)]));
     var radVal = radInfo ? (radInfo.char + (radInfo.name ? "（" + radInfo.name + "）" : "")) : "—";
+    metaBox.appendChild(imRow([imField("Strokes", String(meta.strokeCount || "—")), imField("Radical", radVal, !revealed, "radical-reveal")]));
     var vars = (window.KANJI_VARIANTS || {})[meta.char];
     var varVal = vars && vars.length ? vars.map(function (v) { return v.char; }).join("、") : "—";
-    metaBox.appendChild(imRow([imField("Radical", radVal, !revealed, "radical-reveal"), imField("Variants", varVal, !revealed)]));
-    metaBox.appendChild(imRow([imField("Strokes", String(meta.strokeCount || "—"))]));
+    // Versions (Phase 32 B): tappable reference chips, display-only; hidden pre-draw.
+    var verField = document.createElement("div"); verField.className = "im-field";
+    var verK = document.createElement("span"); verK.className = "im-k"; verK.textContent = "Versions";
+    var verV = document.createElement("span"); verV.className = "im-v";
+    if (!revealed) verV.textContent = "—";
+    else if (window.Versions) window.Versions.fill(verV, meta.char);
+    else verV.textContent = "—";
+    verField.appendChild(verK); verField.appendChild(verV);
+    metaBox.appendChild(imRow([imField("Variants", varVal, !revealed), verField]));
     root.appendChild(metaBox);
 
     if (settings.vocab !== false && meta.vocab && meta.vocab.length) {

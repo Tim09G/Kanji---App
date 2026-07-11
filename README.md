@@ -97,6 +97,20 @@ mixing new and due characters behaves consistently.
   its meaning and main readings (the same system as the draw screen). On Browse the
   radical is *not* specially highlighted — component info only.
 
+### 📊 Stats — is the scheduler actually working?
+Read-only visibility into FSRS outcomes (changes no scheduling logic):
+- **Headline tiles**: kanji learned, due now, 30-day retention, current leech count.
+- **Retention trend** — % of reviews passed per week (Phase 28 pass/fail), with a
+  shaded 75–92% "healthy" band: consistently below it means intervals are outrunning
+  memory; far above may mean reviews are too easy.
+- **Reviews per day** (last 2 weeks), a **7-day due forecast** (today includes
+  overdue), the **mastery distribution**, and **trouble kanji** — current leeches as
+  tappable chips that jump to Browse.
+- Powered by a per-review history log (`kanji.history.v1`, capped at the most recent
+  20k reviews, included in backups) that **starts logging when this version ships** —
+  earlier reviews were stored only as aggregates, so trends fill in going forward.
+- Sections are independent cards, ready for future insights (e.g. confusion detection).
+
 ### ⚙️ Settings
 - **Backup & restore** (data portability):
   - **Export data** downloads a single dated JSON file (e.g.
@@ -206,6 +220,13 @@ name-use) character. Each one is generated from open data:
   it** — no padding. Common words are ranked first; rarer/variant kanji still get
   their real (less-common) words. A small number of very rare characters have few or
   no example words; that's expected.
+- **"Versions"** — alternate STYLISTIC forms (Kaisho 楷書 calligraphic, Hyōgai 表外
+  alternate glyph, Jinmeiyō 人名 name-use), sourced from KanjiVG's variant SVG files
+  and shown as tappable chips that open a larger view. **Strictly display-only**:
+  the files live in `data/versions/` as pre-cleaned static images rendered via
+  `<img>` (generator: `tools/gen_versions.js`) and are completely walled off from
+  the stroke-practice data in `data/kanji/` — the exact separation the Phase 30 bug
+  was about. KanjiVG has no true cursive (行書/草書) set, so no cursive form is shown.
 - **Radical & component highlighting** from KanjiVG, and a **"Similar to"** list
   computed across the whole set by a multi-signal generator (`tools/gen_similar.js`):
   full KanjiVG element decomposition weighted by rarity + shape similarity from the

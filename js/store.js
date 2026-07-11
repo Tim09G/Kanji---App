@@ -18,6 +18,8 @@ window.Store = (function () {
   var PROGRESS_KEY = "kanji.progress.v1";
   var SETTINGS_KEY = "kanji.settings.v1";
   var AUTOBACKUP_KEY = "kanji.autobackup.v1";
+  var HISTORY_KEY = "kanji.history.v1";   // Phase 32 A: per-review log (see below)
+  var HISTORY_MAX = 20000;                // keep the most recent N reviews
   var BACKUP_APP = "kanji-practice";
   var BACKUP_VERSION = 1;
   var MAX_AUTO = 3;   // keep the last few automatic backups
@@ -146,15 +148,36 @@ window.Store = (function () {
 
   // Wipe everything (handy for testing).
   function resetAll() {
-    _progress = {};                                   // keep the cache in sync
+    _progress = {}; _history = [];                    // keep the caches in sync
     try { localStorage.removeItem(PROGRESS_KEY); } catch (e) {}
+    try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
+  }
+
+  // ---- Review history (Phase 32 A) ----
+  // A compact append-only log of individual reviews, {t: epoch-ms, c: char,
+  // r: FSRS rating 1-4, p: passed}. Powers the stats screen's retention and
+  // reviews-over-time trends. Logging starts the day this ships (flagged: the
+  // aggregates stored before that carry no timestamps, so trends can't be
+  // reconstructed retroactively). Cached like progress; capped at HISTORY_MAX.
+  var _history = null;
+  function history() {
+    if (_history === null) { var h = readJSON(HISTORY_KEY, []); _history = Array.isArray(h) ? h : []; }
+    return _history;
+  }
+  function appendHistory(entry) {
+    var h = history();
+    h.push(entry);
+    if (h.length > HISTORY_MAX) h.splice(0, h.length - HISTORY_MAX);
+    writeJSON(HISTORY_KEY, h);
+    return entry;
   }
 
   // ---- Backup / restore (Phase 18) ----
   // A snapshot is the full set of locally-persisted data (progress incl. FSRS state,
   // and settings). Export wraps it in an envelope with an app/version marker.
   function snapshot() {
-    return { progress: readJSON(PROGRESS_KEY, {}), settings: readJSON(SETTINGS_KEY, null) };
+    return { progress: readJSON(PROGRESS_KEY, {}), settings: readJSON(SETTINGS_KEY, null),
+             history: readJSON(HISTORY_KEY, []) };   // Phase 32: review log rides along
   }
   function exportData() {
     return { app: BACKUP_APP, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), data: snapshot() };
@@ -168,6 +191,7 @@ window.Store = (function () {
   function applyData(data) {
     if (data && data.progress && typeof data.progress === "object") writeProgress(data.progress);   // refreshes cache
     if (data && data.settings && typeof data.settings === "object") writeJSON(SETTINGS_KEY, data.settings);
+    if (data && Array.isArray(data.history)) { _history = data.history; writeJSON(HISTORY_KEY, data.history); }
   }
   // Overwrite live data from a validated export envelope. Returns true on success.
   function importData(obj) {
@@ -208,6 +232,8 @@ window.Store = (function () {
     nextNewChars: nextNewChars,
     reviewPool: reviewPool,
     counts: counts,
+    history: history,
+    appendHistory: appendHistory,
     resetAll: resetAll,
     exportData: exportData,
     importData: importData,

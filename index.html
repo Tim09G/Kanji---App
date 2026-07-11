@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;rect width='100' height='100' rx='20' fill='%232f6fed'/&gt;&lt;text x='50' y='52' font-size='64' text-anchor='middle' dominant-baseline='central' fill='white'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=40" />
+  <link rel="stylesheet" href="css/styles.css?v=41" />
 </head>
 <body>
   <main class="app-main">
@@ -35,12 +35,26 @@
           <span class="mode-title">Browse</span>
           <span class="mode-desc">Look at stroke order, readings and meaning.</span>
         </button>
+        <button id="nav-stats" class="mode-card" type="button">
+          <span class="mode-emoji">📊</span>
+          <span class="mode-title">Stats</span>
+          <span class="mode-desc">Retention, review activity, due forecast and trouble kanji.</span>
+        </button>
         <button id="nav-settings" class="mode-card" type="button">
           <span class="mode-emoji">⚙️</span>
           <span class="mode-title">Settings</span>
           <span class="mode-desc">App options and resetting progress.</span>
         </button>
       </div>
+    </section>
+
+    <!-- ============ STATS (Phase 32 A — read-only FSRS visibility) ============ -->
+    <section id="screen-stats" class="screen">
+      <div class="compact-bar">
+        <button class="box-nav-btn box-nav-static" data-home type="button">← Home</button>
+        <span class="compact-title">Stats</span>
+      </div>
+      <div id="stats-body"></div>
     </section>
 
     <!-- ============ SETTINGS ============ -->
@@ -124,18 +138,19 @@
               <dt>音（おん）</dt><dd id="browse-on">—</dd>
               <dt>訓（くん）</dt><dd id="browse-kun">—</dd>
             </dl>
-            <!-- F: paired meta layout — Freq|JLPT, Radical|Variants, then Strokes. -->
+            <!-- F/Phase 32 B: paired meta — Freq|JLPT, Strokes|Radical, Variants|Versions. -->
             <div class="info-meta">
               <div class="im-row">
                 <div class="im-field"><span class="im-k">Frequency</span><span class="im-v" id="browse-freq">—</span></div>
                 <div class="im-field"><span class="im-k">JLPT</span><span class="im-v" id="browse-jlpt">—</span></div>
               </div>
               <div class="im-row">
+                <div class="im-field"><span class="im-k">Strokes</span><span class="im-v" id="browse-strokes">—</span></div>
                 <div class="im-field"><span class="im-k">Radical</span><span class="im-v" id="browse-radical">—</span></div>
-                <div class="im-field"><span class="im-k">Variants</span><span class="im-v" id="browse-variants">—</span></div>
               </div>
               <div class="im-row">
-                <div class="im-field"><span class="im-k">Strokes</span><span class="im-v" id="browse-strokes">—</span></div>
+                <div class="im-field"><span class="im-k">Variants</span><span class="im-v" id="browse-variants">—</span></div>
+                <div class="im-field"><span class="im-k">Versions</span><span class="im-v" id="browse-versions">—</span></div>
               </div>
             </div>
             <div class="browse-vocab">
@@ -312,17 +327,20 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="vendor/hanzi-writer.min.js"></script>
   <script src="vendor/ts-fsrs.umd.js"></script>
-  <script src="data/kanji-meta.js?v=40"></script>
-  <script src="data/kanji-gen-1.js?v=40"></script>
-  <script src="data/kanji-gen-2.js?v=40"></script>
-  <script src="data/kanji-gen-3.js?v=40"></script>
-  <script src="data/kanji-gen-4.js?v=40"></script>
-  <script src="data/kanji-components.js?v=40"></script>
-  <script src="js/store.js?v=40"></script>
-  <script src="js/scheduler.js?v=40"></script>
-  <script src="js/clouddrive.js?v=40"></script>
-  <script src="js/filters.js?v=40"></script>
-  <script src="js/drawscreen.js?v=40"></script>
-  <script src="js/app.js?v=40"></script>
+  <script src="data/kanji-meta.js?v=41"></script>
+  <script src="data/kanji-gen-1.js?v=41"></script>
+  <script src="data/kanji-gen-2.js?v=41"></script>
+  <script src="data/kanji-gen-3.js?v=41"></script>
+  <script src="data/kanji-gen-4.js?v=41"></script>
+  <script src="data/kanji-components.js?v=41"></script>
+  <script src="data/kanji-versions.js?v=41"></script>
+  <script src="js/store.js?v=41"></script>
+  <script src="js/scheduler.js?v=41"></script>
+  <script src="js/clouddrive.js?v=41"></script>
+  <script src="js/filters.js?v=41"></script>
+  <script src="js/versions.js?v=41"></script>
+  <script src="js/stats.js?v=41"></script>
+  <script src="js/drawscreen.js?v=41"></script>
+  <script src="js/app.js?v=41"></script>
 </body>
 </html>
