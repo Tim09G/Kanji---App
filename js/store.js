@@ -20,6 +20,7 @@ window.Store = (function () {
   var AUTOBACKUP_KEY = "kanji.autobackup.v1";
   var HISTORY_KEY = "kanji.history.v1";   // Phase 32 A: per-review log (see below)
   var HISTORY_MAX = 20000;                // keep the most recent N reviews
+  var CONFUSION_KEY = "kanji.confusions.v1";   // Phase 34: confusion pairs (see below)
   var BACKUP_APP = "kanji-practice";
   var BACKUP_VERSION = 1;
   var MAX_AUTO = 3;   // keep the last few automatic backups
@@ -148,9 +149,10 @@ window.Store = (function () {
 
   // Wipe everything (handy for testing).
   function resetAll() {
-    _progress = {}; _history = [];                    // keep the caches in sync
+    _progress = {}; _history = []; _confusions = {};  // keep the caches in sync
     try { localStorage.removeItem(PROGRESS_KEY); } catch (e) {}
     try { localStorage.removeItem(HISTORY_KEY); } catch (e) {}
+    try { localStorage.removeItem(CONFUSION_KEY); } catch (e) {}
   }
 
   // ---- Review history (Phase 32 A) ----
@@ -172,12 +174,29 @@ window.Store = (function () {
     return entry;
   }
 
+  // ---- Confusion pairs (Phase 34) ----
+  // Map keyed "a|b" (the two kanji in codepoint order, so A↔B and B↔A are one
+  // record) → { n: times confused, t: last confused at (epoch ms), m: per-source
+  // counts {prompt, typed, manual}, s: last shown in discrimination mode }.
+  // "typed" entries are kept separate on purpose: they're confusions the
+  // similarity data ranked low or missed, useful for improving it later.
+  var _confusions = null;
+  function confusions() {
+    if (_confusions === null) { var c = readJSON(CONFUSION_KEY, {}); _confusions = (c && typeof c === "object" && !Array.isArray(c)) ? c : {}; }
+    return _confusions;
+  }
+  function writeConfusions(map) {
+    _confusions = map;
+    writeJSON(CONFUSION_KEY, map);
+  }
+
   // ---- Backup / restore (Phase 18) ----
   // A snapshot is the full set of locally-persisted data (progress incl. FSRS state,
   // and settings). Export wraps it in an envelope with an app/version marker.
   function snapshot() {
     return { progress: readJSON(PROGRESS_KEY, {}), settings: readJSON(SETTINGS_KEY, null),
-             history: readJSON(HISTORY_KEY, []) };   // Phase 32: review log rides along
+             history: readJSON(HISTORY_KEY, []),          // Phase 32: review log rides along
+             confusions: readJSON(CONFUSION_KEY, {}) };   // Phase 34: confusion pairs too
   }
   function exportData() {
     return { app: BACKUP_APP, version: BACKUP_VERSION, exportedAt: new Date().toISOString(), data: snapshot() };
@@ -192,6 +211,7 @@ window.Store = (function () {
     if (data && data.progress && typeof data.progress === "object") writeProgress(data.progress);   // refreshes cache
     if (data && data.settings && typeof data.settings === "object") writeJSON(SETTINGS_KEY, data.settings);
     if (data && Array.isArray(data.history)) { _history = data.history; writeJSON(HISTORY_KEY, data.history); }
+    if (data && data.confusions && typeof data.confusions === "object" && !Array.isArray(data.confusions)) writeConfusions(data.confusions);
   }
   // Overwrite live data from a validated export envelope. Returns true on success.
   function importData(obj) {
@@ -234,6 +254,8 @@ window.Store = (function () {
     counts: counts,
     history: history,
     appendHistory: appendHistory,
+    confusions: confusions,
+    writeConfusions: writeConfusions,
     resetAll: resetAll,
     exportData: exportData,
     importData: importData,

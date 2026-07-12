@@ -733,3 +733,85 @@ html, body {
 .slider-row { display: flex; flex-direction: column; align-items: stretch; gap: 0.2rem; flex-wrap: nowrap; }
 .slider-row input[type="range"] { width: 100%; min-width: 0; flex: none; }
 #new-preview { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* ============ Phase 34 — confusion pairs & discrimination practice ============ */
+
+/* (1a) post-failure "mixed it up?" strip at the top of the cue panel */
+.confusion-strip {
+  background: #fdf6ec; border: 1px solid #ecd9b0; border-radius: 10px;
+  padding: 0.5rem 0.6rem; margin-bottom: 0.6rem; text-align: left;
+}
+.conf-head { display: flex; align-items: center; justify-content: space-between; gap: 0.4rem; }
+.conf-q { font-size: 0.85rem; font-weight: 600; color: #7a5a17; }
+.conf-dismiss {
+  font: inherit; font-size: 0.8rem; line-height: 1; padding: 0.2rem 0.35rem; cursor: pointer;
+  border: none; background: transparent; color: var(--muted); border-radius: 6px;
+}
+.conf-dismiss:hover { background: #f1e3c4; }
+.conf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem; margin-top: 0.4rem; }
+.conf-chip {
+  font-size: 1.25rem; width: 2.3rem; height: 2.3rem; cursor: pointer;
+  border: 1px solid var(--line); background: var(--card); border-radius: 9px;
+  transition: transform 0.08s ease, border-color 0.15s ease;
+}
+.conf-chip:hover { transform: translateY(-1px); border-color: var(--accent); }
+.conf-input {
+  font: inherit; font-size: 0.95rem; width: 6.5rem; padding: 0.3rem 0.45rem;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--card);
+}
+.conf-noted { font-size: 0.85rem; color: #7a5a17; }
+
+/* (1b) Browse "Mixed up with" row */
+.im-field-wide { flex: 1 1 100%; }
+.im-field-wide .im-v { white-space: normal; display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; justify-content: flex-end; }
+.conf-pair-chip { display: inline-flex; align-items: stretch; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.conf-pair-go {
+  font: inherit; font-size: 1.05rem; padding: 0.1rem 0.4rem; cursor: pointer;
+  border: none; background: var(--card);
+}
+.conf-pair-go:hover { background: var(--accent); color: var(--accent-ink); }
+.conf-pair-rm {
+  font: inherit; font-size: 0.7rem; padding: 0 0.3rem; cursor: pointer;
+  border: none; border-left: 1px solid var(--line); background: transparent; color: var(--muted);
+}
+.conf-pair-rm:hover { background: var(--bad); color: #fff; }
+.conf-add {
+  font: inherit; font-size: 0.75rem; padding: 0.15rem 0.45rem; cursor: pointer;
+  border: 1px dashed var(--line); background: transparent; color: var(--muted); border-radius: 8px;
+}
+.conf-add:hover { border-color: var(--accent); color: var(--accent); }
+#browse-confusion .conf-row { justify-content: flex-end; }
+
+/* (Part 2) discrimination screen */
+.discrim-wrap {
+  max-width: 30rem; margin: 1.5rem auto; text-align: center;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); padding: 1.25rem 1rem 1.5rem;
+}
+.discrim-title { margin: 0 0 0.25rem; font-size: 1.15rem; }
+.discrim-question { margin: 0 0 0.9rem; color: var(--muted); }
+.discrim-cards { display: flex; justify-content: center; gap: 0.9rem; flex-wrap: wrap; }
+.discrim-card {
+  border: 2px solid var(--line); background: #fff; border-radius: 14px; cursor: pointer;
+  padding: 0.5rem 0.5rem 0.4rem; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  transition: transform 0.08s ease, border-color 0.15s ease;
+}
+.discrim-card:hover { transform: translateY(-1px); border-color: var(--accent); }
+.discrim-card.discrim-right { border-color: var(--good); background: #f0f9f4; }
+.discrim-card.discrim-wrong { border-color: var(--bad); background: #fdf1f0; }
+.discrim-glyph { width: 150px; height: 150px; }
+.discrim-cap { font-size: 0.8rem; color: var(--muted); max-width: 160px; }
+.discrim-feedback { min-height: 1.2em; margin: 0.8rem 0 0.6rem; font-size: 0.9rem; }
+.discrim-fb-right { color: var(--good); }
+.discrim-fb-wrong { color: var(--bad); }
+
+/* (Part 3) stats list of confusion pairs */
+.stats-conf { display: flex; flex-direction: column; gap: 0.35rem; }
+.conf-stat-row { display: flex; align-items: center; gap: 0.4rem; }
+.conf-stat-sep { color: var(--muted); font-size: 0.85rem; }
+.conf-stat-n { color: var(--muted); font-size: 0.8rem; margin-left: 0.2rem; }
+.conf-stat-rm {
+  font: inherit; font-size: 0.75rem; padding: 0.15rem 0.4rem; cursor: pointer; margin-left: auto;
+  border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 8px;
+}
+.conf-stat-rm:hover { background: var(--bad); border-color: var(--bad); color: #fff; }

@@ -72,6 +72,63 @@ window.DrawScreen = (function () {
   // sites keep working without printing anything.
   function setPrompt() {}
 
+  // ===== confusion prompt (Phase 34, 1a) =====
+  // After a FAILED review, ask (optionally — a single tap, never blocking) whether
+  // the miss was a mix-up with a look-alike. Tapping a suggested kanji or typing
+  // any other kanji records a confusion pair; advancing past it skips silently.
+  function clearConfusionPrompt() {
+    if (!els.confusion) return;
+    els.confusion.hidden = true;
+    els.confusion.innerHTML = "";
+  }
+  function isKanjiChar(c) { return /[⺀-⻿㐀-鿿]/.test(c); }
+  function renderConfusionPrompt(t) {
+    if (!els.confusion || !window.Confusion) return;
+    els.confusion.innerHTML = "";
+    if (t._confusedWith) {   // already answered this task (e.g. badge flipped back and forth)
+      confirmConfusion(t, t._confusedWith);
+      els.confusion.hidden = false;
+      return;
+    }
+    var head = document.createElement("div"); head.className = "conf-head";
+    var q = document.createElement("span"); q.className = "conf-q"; q.textContent = "Mixed it up with another kanji?";
+    var x = document.createElement("button"); x.type = "button"; x.className = "conf-dismiss";
+    x.setAttribute("aria-label", "Dismiss"); x.textContent = "✕";
+    x.addEventListener("click", clearConfusionPrompt);
+    head.appendChild(q); head.appendChild(x);
+    els.confusion.appendChild(head);
+
+    var row = document.createElement("div"); row.className = "conf-row";
+    Confusion.suggestionsFor(t.char, 4).forEach(function (c) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "conf-chip"; b.textContent = c;
+      b.addEventListener("click", function () { recordConfusion(t, c, "prompt"); });
+      row.appendChild(b);
+    });
+    var inp = document.createElement("input");
+    inp.type = "text"; inp.className = "conf-input"; inp.maxLength = 2;
+    inp.placeholder = "or type it…"; inp.setAttribute("aria-label", "Type the kanji you confused it with");
+    inp.addEventListener("input", function () {
+      var v = (inp.value || "").trim();
+      for (var i = 0; i < v.length; i++) {
+        if (isKanjiChar(v[i]) && v[i] !== t.char && metaFor(v[i])) { recordConfusion(t, v[i], "typed"); return; }
+      }
+    });
+    row.appendChild(inp);
+    els.confusion.appendChild(row);
+    els.confusion.hidden = false;
+  }
+  function recordConfusion(t, partner, src) {
+    Confusion.record(t.char, partner, src);
+    t._confusedWith = partner;
+    confirmConfusion(t, partner);
+  }
+  function confirmConfusion(t, partner) {
+    els.confusion.innerHTML = "";
+    var ok = document.createElement("div"); ok.className = "conf-noted";
+    ok.textContent = "Noted: " + t.char + " ↔ " + partner + " — they'll come up for side-by-side practice.";
+    els.confusion.appendChild(ok);
+  }
+
   // Phase 28: pass = Easy/Good, fail = Hard/Again.
   function isPass(r) { return r === "easy" || r === "good"; }
 
@@ -117,6 +174,12 @@ window.DrawScreen = (function () {
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; armTap(); }
     flipped = !flipped;
     renderBadge();
+    // Phase 34: keep the confusion prompt consistent with the badge — it belongs
+    // to failed reviews only, so flipping to ✓ hides it and back to ✗ restores it.
+    if (task && task.kind === "review") {
+      var er = effectiveRating();
+      if (er && !isPass(er)) renderConfusionPrompt(task); else clearConfusionPrompt();
+    }
   }
 
   // ===== cue panel =====
@@ -495,6 +558,9 @@ window.DrawScreen = (function () {
     showResult(rating);   // ✓ for Easy/Good, ✗ for Hard/Again
 
     if (isReviewFail) {
+      // Phase 34 (1a): optional one-tap "did you mix this up?" prompt. Only for
+      // failed reviews, which always hold — so it never delays auto-advance.
+      renderConfusionPrompt(t);
       // Hold here; the review must not auto-progress past a failed character (B2.2).
       armTap();
     } else {
@@ -619,7 +685,7 @@ window.DrawScreen = (function () {
     if (writer) { try { writer.cancelQuiz(); } catch (e) {} }
     if (els.prior) els.prior.disabled = true;
     els.stepLabel.textContent = "◀ Previous kanji";
-    clearBadge();
+    clearBadge(); clearConfusionPrompt();
     task = { char: prevChar, vocabRevealed: true };   // stub so cues render fully
     renderCuePanel(prevChar);
     var pc = prevChar;
@@ -645,6 +711,9 @@ window.DrawScreen = (function () {
       // Restore the badge exactly as the user left it (they may have toggled it).
       buildReadOnly(task.char, strokeData);
       computedRating = s.computedRating; flipped = s.flipped; renderBadge();
+      // restore the confusion prompt if this was a held failed review (Phase 34)
+      var er = effectiveRating();
+      if (task.kind === "review" && er && !isPass(er)) renderConfusionPrompt(task);
       armTap();
     } else {
       // current not yet drawn — resume the quiz fresh
@@ -662,7 +731,7 @@ window.DrawScreen = (function () {
     done = false; advancing = false; task.vocabRevealed = false;
     misses = 0; redos = 0;              // Phase 28: fresh stroke-grade counters
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
-    disarmTap(); clearHighlights();
+    disarmTap(); clearHighlights(); clearConfusionPrompt();
     els.modeLabel.textContent = t.modeLabel || "";
     els.stepLabel.textContent = t.stepLabel || "";
     els.progressLabel.textContent = t.progressLabel || "";
@@ -684,7 +753,7 @@ window.DrawScreen = (function () {
   // Abort the current task without advancing (used by the back button).
   function stop() {
     if (advanceTimer) { clearTimeout(advanceTimer); advanceTimer = null; }
-    disarmTap();
+    disarmTap(); clearConfusionPrompt();
     if (writer) { try { writer.cancelQuiz(); } catch (e) {} }
     done = true; advancing = true; task = null;
     inPrior = false; priorSaved = null; prevChar = null;   // reset prior state between sessions

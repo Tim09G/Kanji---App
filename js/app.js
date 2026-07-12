@@ -201,6 +201,8 @@
       ? vars.map(function (v) { return v.char; }).join("、") : "—";
     // Phase 32 B: alternate stylistic forms (display-only reference)
     if (window.Versions) Versions.fill($("browse-versions"), char);
+    // Phase 34 (1b): personal confusion pairs — view, add, remove
+    renderBrowseConfusion(char);
     // F: full vocabulary list (with audio)
     renderBrowseVocab(meta);
     $("browse-target").innerHTML = "";
@@ -266,6 +268,49 @@
       root.appendChild(grid);
     });
   }
+  // Phase 34 (1b): "Mixed up with" row on the Browse card — shows this kanji's
+  // recorded confusion partners (tap → jump there; ✕ → remove), plus an add
+  // picker (suggested look-alikes + free typed input) that records a manual pair.
+  function renderBrowseConfusion(char) {
+    var root = $("browse-confusion"); if (!root || !window.Confusion) return;
+    root.innerHTML = "";
+    Confusion.partnersOf(char).forEach(function (p) {
+      var chip = document.createElement("span"); chip.className = "conf-pair-chip";
+      var go = document.createElement("button"); go.type = "button"; go.className = "conf-pair-go"; go.textContent = p.char;
+      go.title = "Open " + p.char;
+      go.addEventListener("click", function () { browseSelect(p.char); });
+      var rm = document.createElement("button"); rm.type = "button"; rm.className = "conf-pair-rm"; rm.textContent = "✕";
+      rm.title = "No longer confused — remove this pair";
+      rm.setAttribute("aria-label", "Remove confusion pair " + char + " and " + p.char);
+      rm.addEventListener("click", function () { Confusion.remove(char, p.char); renderBrowseConfusion(char); });
+      chip.appendChild(go); chip.appendChild(rm);
+      root.appendChild(chip);
+    });
+    var add = document.createElement("button"); add.type = "button"; add.className = "conf-add"; add.textContent = "＋ add";
+    add.title = "Mark a kanji you personally mix this one up with";
+    add.addEventListener("click", function () {
+      if (root.querySelector(".conf-row")) { renderBrowseConfusion(char); return; }   // toggle off
+      var row = document.createElement("div"); row.className = "conf-row";
+      Confusion.suggestionsFor(char, 4).forEach(function (c) {
+        var b = document.createElement("button"); b.type = "button"; b.className = "conf-chip"; b.textContent = c;
+        b.addEventListener("click", function () { Confusion.record(char, c, "manual"); renderBrowseConfusion(char); });
+        row.appendChild(b);
+      });
+      var inp = document.createElement("input");
+      inp.type = "text"; inp.className = "conf-input"; inp.maxLength = 2; inp.placeholder = "or type it…";
+      inp.addEventListener("input", function () {
+        var v = (inp.value || "").trim();
+        for (var i = 0; i < v.length; i++) {
+          if (v[i] !== char && metaOf(v[i])) { Confusion.record(char, v[i], "manual"); renderBrowseConfusion(char); return; }
+        }
+      });
+      row.appendChild(inp);
+      root.appendChild(row);
+      inp.focus();
+    });
+    root.appendChild(add);
+  }
+
   function openBrowse() {
     $("browse-search").value = "";
     buildBrowseSortOptions();
@@ -735,7 +780,120 @@
     toastTimer = setTimeout(function () { el.classList.remove("show"); }, 3200);
   }
 
+  // ===== discrimination mode (Phase 34, Part 2) =====
+  // One forced-choice contrast step: both kanji of a confusion pair side by side,
+  // "tap the one that means …". After the choice, each card is captioned and the
+  // strokes belonging to components the OTHER kanji doesn't have are highlighted —
+  // the parts to look at to tell them apart. Purely instructional: no FSRS rating.
+  var DIFF_COLOR = "#2f6fed";
+  function kataToHiraStr(s) {
+    var out = "";
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      out += (c >= 0x30a1 && c <= 0x30f6) ? String.fromCharCode(c - 0x60) : s[i];
+    }
+    return out;
+  }
+  function readingsLine(m) {
+    var on = (m.on || []).map(kataToHiraStr);
+    var kun = (m.kun || []).map(function (k) { return k.replace(/[.\-]/g, ""); });
+    return on.concat(kun).slice(0, 3).join("、");
+  }
+  // Strokes of `char` belonging to components the partner doesn't share.
+  // Uninformative extremes (nothing unique, or the whole kanji unique — e.g. 土/士,
+  // whose parts are identical and only proportions differ) return [] = no overlay.
+  function diffStrokes(char, other) {
+    var comps = window.KANJI_COMPONENTS || {};
+    var mine = (comps[char] && comps[char].components) || [];
+    var theirs = (comps[other] && comps[other].components) || [];
+    if (!mine.length || !theirs.length) return [];
+    var theirSet = {}; theirSet[other] = true;
+    theirs.forEach(function (c) { theirSet[c.char] = true; });
+    var uniq = {};
+    mine.forEach(function (c) {
+      if (c.char === char || theirSet[c.char]) return;
+      (c.strokes || []).forEach(function (i) { uniq[i] = true; });
+    });
+    var idx = Object.keys(uniq).map(Number);
+    var total = (metaOf(char) || {}).strokeCount || 0;
+    if (!idx.length || idx.length >= total) return [];
+    return idx;
+  }
+  function overlayDiff(cardGlyph, strokes, sd, attempt) {
+    if (!strokes.length || !sd) return;
+    var g = cardGlyph.querySelector("svg > g");
+    if (!g) { if ((attempt || 0) < 20) requestAnimationFrame(function () { overlayDiff(cardGlyph, strokes, sd, (attempt || 0) + 1); }); return; }
+    var ov = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    strokes.forEach(function (i) {
+      if (!sd.strokes[i]) return;
+      var p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      p.setAttribute("d", sd.strokes[i]); p.setAttribute("fill", DIFF_COLOR);
+      p.style.pointerEvents = "none";
+      ov.appendChild(p);
+    });
+    g.appendChild(ov);
+  }
+
+  function runDiscrimination(t, done) {
+    if (window.Confusion) Confusion.noteShown(t.a, t.b);
+    var target = Math.random() < 0.5 ? t.a : t.b;           // ask about either side
+    var order = Math.random() < 0.5 ? [t.a, t.b] : [t.b, t.a];
+    var tm = metaOf(target);
+    $("discrim-question").textContent = "Tap the one that means “" + tm.meaning + "”";
+    var fb = $("discrim-feedback"); fb.textContent = ""; fb.className = "discrim-feedback";
+    var btn = $("discrim-continue"); btn.hidden = true;
+    var cards = $("discrim-cards"); cards.innerHTML = "";
+    var sdOf = {}, cardOf = {}, answered = false;
+
+    order.forEach(function (ch) {
+      var card = document.createElement("button");
+      card.type = "button"; card.className = "discrim-card"; card.dataset.char = ch;
+      card.setAttribute("aria-label", "Kanji option");
+      var glyph = document.createElement("div"); glyph.className = "discrim-glyph";
+      var cap = document.createElement("div"); cap.className = "discrim-cap"; cap.hidden = true;
+      card.appendChild(glyph); card.appendChild(cap);
+      cards.appendChild(card);
+      cardOf[ch] = { card: card, glyph: glyph, cap: cap };
+      var size = 150;
+      HanziWriter.create(glyph, ch, {
+        width: size, height: size, padding: 4, showCharacter: true, showOutline: false,
+        strokeColor: "#1f2933",
+        charDataLoader: function (c, cb) {
+          fetch("data/kanji/" + encodeURIComponent(c) + ".json")
+            .then(function (r) { return r.json(); })
+            .then(function (d) { sdOf[c] = d; cb(d); })
+            .catch(function () {});
+        },
+      });
+      card.addEventListener("click", function () { if (!answered) reveal(ch); });
+    });
+
+    function reveal(chosen) {
+      answered = true;
+      var right = chosen === target;
+      cardOf[target].card.classList.add("discrim-right");
+      if (!right) cardOf[chosen].card.classList.add("discrim-wrong");
+      order.forEach(function (ch) {
+        var m = metaOf(ch);
+        var c = cardOf[ch];
+        c.cap.textContent = m.meaning + (readingsLine(m) ? "（" + readingsLine(m) + "）" : "");
+        c.cap.hidden = false;
+        overlayDiff(c.glyph, diffStrokes(ch, ch === t.a ? t.b : t.a), sdOf[ch]);
+      });
+      fb.textContent = right
+        ? "Right — the highlighted strokes are what set them apart."
+        : "Not this time — compare the highlighted strokes: that's the difference.";
+      fb.className = "discrim-feedback " + (right ? "discrim-fb-right" : "discrim-fb-wrong");
+      btn.hidden = false;
+      btn.focus();
+    }
+
+    btn.onclick = function () { btn.onclick = null; done(); };
+    show("screen-discrim");
+  }
+
   function runSession(cfg) {
+    if (window.Confusion) Confusion.resetSession();   // Phase 34: per-session discrimination budget
     // initial interleave of learn-start tasks and review tasks
     var learnTasks = cfg.learnItems.map(function (it) { return makeLearn(it.char, it.step); });
     var reviewTasks = cfg.reviewChars.map(function (c) { return makeReview(c, false); });
@@ -769,6 +927,16 @@
         return;
       }
       var t = queue.shift();
+      // Phase 34 (Part 2): side-by-side discrimination interstitial — not a draw
+      // task, no FSRS effect; continues the queue when done.
+      if (t.kind === "discrim") {
+        runDiscrimination(t, function () {
+          if (!activeSession || activeSession.aborted) return;
+          completed++;
+          present();
+        });
+        return;
+      }
       show("screen-draw");
       DrawScreen.run({
         char: t.char, level: t.level, kind: t.kind, scaffold: (t.kind === "learn"),
@@ -801,7 +969,16 @@
 
     function handleReview(t, r) {
       Scheduler.applyResult(t.char, r);   // feed Again/Hard/Good into FSRS
-      if (r.success) return;
+      if (r.success) {
+        // Phase 34 (Part 2): after a PASSED review of a kanji with a live confusion
+        // pair, periodically contrast the two side by side. Only after passes — a
+        // failure already gets the mix-up prompt + the retry side-loop, and stacking
+        // a third intervention there would be exactly the fatigue the spec warns
+        // about. Pacing/mastery gates live in Confusion.pickDiscrimination.
+        var partner = window.Confusion ? Confusion.pickDiscrimination(t.char) : null;
+        if (partner) queue.unshift({ kind: "discrim", a: t.char, b: partner });
+        return;
+      }
       if (reviewedSet[t.char]) failedSet[t.char] = true; // A2: distinct kanji that failed
       if (t.isExtra) return;                              // final attempt failed -> terminal
       queue.unshift(makeSideloop(t.char, 1));             // B2.3 (A1: step 3), immediate
@@ -976,7 +1153,7 @@
     registerScreens();
     DrawScreen.init({
       target: $("draw-target"), cueSettings: $("cue-settings"), cueContent: $("cue-content"),
-      prompt: null, status: $("draw-result"),
+      prompt: null, status: $("draw-result"), confusion: $("confusion-strip"),
       modeLabel: $("draw-mode"), stepLabel: $("draw-step"), progressLabel: $("draw-progress"),
       reveal: $("draw-reveal"), skip: $("draw-skip"), back: $("draw-back"), prior: $("draw-prior"),
     }, { onBack: exitSession });

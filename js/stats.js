@@ -218,6 +218,35 @@ window.Stats = (function () {
       tk.appendChild(wrap);
     }
     root.appendChild(tk);
+
+    // --- confusion pairs (Phase 34, Part 3) ---
+    var pairs = window.Confusion ? Confusion.allPairs() : [];
+    var cp = card("Kanji you mix up", pairs.length
+      ? "Pairs you've marked as confused. They come up for side-by-side practice during reviews. Tap a kanji to open it in Browse; ✕ removes a pair you've untangled."
+      : "When you fail a review, the app asks if you mixed the kanji up with a look-alike — confirmed pairs collect here (you can also mark them on a kanji's Browse card) and get side-by-side practice during reviews.");
+    if (pairs.length) {
+      var pw = el("div", "stats-conf");
+      pairs.slice(0, 20).forEach(function (p) {
+        var row = el("div", "conf-stat-row");
+        [p.a, p.b].forEach(function (c, i) {
+          if (i) row.appendChild(el("span", "conf-stat-sep", "↔"));
+          var b = el("button", "leech-chip", c);
+          b.type = "button";
+          b.addEventListener("click", function () { if (window.__openBrowseAt) window.__openBrowseAt(c); });
+          row.appendChild(b);
+        });
+        row.appendChild(el("span", "conf-stat-n", p.n + "×"));
+        var rm = el("button", "conf-stat-rm", "✕");
+        rm.type = "button";
+        rm.title = "No longer confused — remove this pair";
+        rm.addEventListener("click", function () { Confusion.remove(p.a, p.b); render(); });
+        row.appendChild(rm);
+        pw.appendChild(row);
+      });
+      if (pairs.length > 20) pw.appendChild(el("span", "hint", "+" + (pairs.length - 20) + " more"));
+      cp.appendChild(pw);
+    }
+    root.appendChild(cp);
   }
 
   return { render: render };

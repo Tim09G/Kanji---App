@@ -20,10 +20,10 @@
  *            kanji are drawn plus a one-time background bulk-cache requested by
  *            the page, so a full study session works offline.
  */
-var VERSION = "v43";
+var VERSION = "v44";
 var SHELL = "kanji-shell-" + VERSION;
 var STROKE = "kanji-strokes-v2";
-var V = "?v=43"; // keep in sync with the ?v=N on index.html's asset links
+var V = "?v=44"; // keep in sync with the ?v=N on index.html's asset links
 
 var PRECACHE = [
   "./", "index.html", "manifest.webmanifest", "icon.svg", "icon-maskable.svg",
@@ -34,7 +34,7 @@ var PRECACHE = [
   "data/kanji-gen-3.js" + V, "data/kanji-gen-4.js" + V, "data/kanji-gen-5.js" + V,
   "data/kanji-components.js" + V, "data/kanji-versions.js" + V,
   "js/store.js" + V, "js/scheduler.js" + V, "js/clouddrive.js" + V,
-  "js/filters.js" + V, "js/versions.js" + V, "js/stats.js" + V, "js/drawscreen.js" + V, "js/app.js" + V,
+  "js/filters.js" + V, "js/versions.js" + V, "js/confusion.js" + V, "js/stats.js" + V, "js/drawscreen.js" + V, "js/app.js" + V,
 ];
 
 function isStroke(url) { return url.pathname.indexOf("/data/kanji/") !== -1 && url.pathname.slice(-5) === ".json"; }

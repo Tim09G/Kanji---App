@@ -10,7 +10,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;text y='.9em' font-size='90'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
   <link rel="apple-touch-icon" href="data:image/svg+xml,&lt;svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'&gt;&lt;rect width='100' height='100' rx='20' fill='%232f6fed'/&gt;&lt;text x='50' y='52' font-size='64' text-anchor='middle' dominant-baseline='central' fill='white'&gt;漢&lt;/text&gt;&lt;/svg&gt;" />
-  <link rel="stylesheet" href="css/styles.css?v=43" />
+  <link rel="stylesheet" href="css/styles.css?v=44" />
 </head>
 <body>
   <main class="app-main">
@@ -152,6 +152,10 @@
                 <div class="im-field"><span class="im-k">Variants</span><span class="im-v" id="browse-variants">—</span></div>
                 <div class="im-field"><span class="im-k">Versions</span><span class="im-v" id="browse-versions">—</span></div>
               </div>
+              <!-- Phase 34 (1b): personal confusion pairs — view / add / remove -->
+              <div class="im-row">
+                <div class="im-field im-field-wide"><span class="im-k">Mixed up with</span><span class="im-v" id="browse-confusion"></span></div>
+              </div>
             </div>
             <div class="browse-vocab">
               <div class="cue-label">Vocabulary</div>
@@ -285,10 +289,25 @@
         </div>
 
         <aside class="cue-panel">
+          <!-- Phase 34 (1a): optional one-tap "mixed it up?" prompt after a failed review -->
+          <div id="confusion-strip" class="confusion-strip" hidden></div>
           <div id="cue-content" class="cue-content"></div>
           <!-- F: cue toggles moved to the bottom, compact single row. -->
           <div id="cue-settings" class="cue-settings"></div>
         </aside>
+      </div>
+    </section>
+
+    <!-- ============ DISCRIMINATION (Phase 34 Part 2) ============ -->
+    <!-- Interstitial contrast step during a session: the two kanji of a confusion
+         pair side by side; tap the one matching the cue, differences highlighted. -->
+    <section id="screen-discrim" class="screen">
+      <div class="discrim-wrap">
+        <h2 class="discrim-title">Don't mix these up</h2>
+        <p id="discrim-question" class="discrim-question"></p>
+        <div id="discrim-cards" class="discrim-cards"></div>
+        <p id="discrim-feedback" class="discrim-feedback"></p>
+        <button id="discrim-continue" class="btn btn-primary" type="button" hidden>Continue</button>
       </div>
     </section>
 
@@ -327,21 +346,22 @@
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="vendor/hanzi-writer.min.js"></script>
   <script src="vendor/ts-fsrs.umd.js"></script>
-  <script src="data/kanji-meta.js?v=43"></script>
-  <script src="data/kanji-gen-1.js?v=43"></script>
-  <script src="data/kanji-gen-2.js?v=43"></script>
-  <script src="data/kanji-gen-3.js?v=43"></script>
-  <script src="data/kanji-gen-4.js?v=43"></script>
-  <script src="data/kanji-gen-5.js?v=43"></script>
-  <script src="data/kanji-components.js?v=43"></script>
-  <script src="data/kanji-versions.js?v=43"></script>
-  <script src="js/store.js?v=43"></script>
-  <script src="js/scheduler.js?v=43"></script>
-  <script src="js/clouddrive.js?v=43"></script>
-  <script src="js/filters.js?v=43"></script>
-  <script src="js/versions.js?v=43"></script>
-  <script src="js/stats.js?v=43"></script>
-  <script src="js/drawscreen.js?v=43"></script>
-  <script src="js/app.js?v=43"></script>
+  <script src="data/kanji-meta.js?v=44"></script>
+  <script src="data/kanji-gen-1.js?v=44"></script>
+  <script src="data/kanji-gen-2.js?v=44"></script>
+  <script src="data/kanji-gen-3.js?v=44"></script>
+  <script src="data/kanji-gen-4.js?v=44"></script>
+  <script src="data/kanji-gen-5.js?v=44"></script>
+  <script src="data/kanji-components.js?v=44"></script>
+  <script src="data/kanji-versions.js?v=44"></script>
+  <script src="js/store.js?v=44"></script>
+  <script src="js/scheduler.js?v=44"></script>
+  <script src="js/clouddrive.js?v=44"></script>
+  <script src="js/filters.js?v=44"></script>
+  <script src="js/versions.js?v=44"></script>
+  <script src="js/confusion.js?v=44"></script>
+  <script src="js/stats.js?v=44"></script>
+  <script src="js/drawscreen.js?v=44"></script>
+  <script src="js/app.js?v=44"></script>
 </body>
 </html>
