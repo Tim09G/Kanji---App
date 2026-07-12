@@ -257,14 +257,15 @@ window.DrawScreen = (function () {
     if (settings.readings !== false) {
       // E: same labelled On/Kun rows as Browse (音（おん）/訓（くん）).
       // Phase 22 C: no "READINGS" header — the 音/訓 row labels are enough.
+      // Phase 35 (P3): rare readings render muted (common-first order + onc/kunc).
       var rb = document.createElement("div"); rb.className = "cue-block";
-      var on = (meta.on || []).map(kataToHira);
-      var kun = (meta.kun || []).map(function (k) { return k.replace(/[.\-]/g, ""); });
       var dl = document.createElement("dl"); dl.className = "readings";
       var dtOn = document.createElement("dt"); dtOn.textContent = "音（おん）";
-      var ddOn = document.createElement("dd"); ddOn.textContent = on.length ? on.join("、") : "—";
+      var ddOn = document.createElement("dd");
+      window.__fillReadings(ddOn, (meta.on || []).map(kataToHira), meta.onc, true);
       var dtKun = document.createElement("dt"); dtKun.textContent = "訓（くん）";
-      var ddKun = document.createElement("dd"); ddKun.textContent = kun.length ? kun.join("、") : "—";
+      var ddKun = document.createElement("dd");
+      window.__fillReadings(ddKun, meta.kun || [], meta.kunc, true);
       dl.appendChild(dtOn); dl.appendChild(ddOn); dl.appendChild(dtKun); dl.appendChild(ddKun);
       rb.appendChild(dl);
       root.appendChild(rb);
@@ -303,6 +304,8 @@ window.DrawScreen = (function () {
 
     if (settings.vocab !== false && meta.vocab && meta.vocab.length) {
       var vb = block("Vocabulary" + (revealed ? " (written form)" : ""));
+      var lg = document.createElement("span"); lg.className = "rare-legend"; lg.textContent = "faded = less common";
+      vb.querySelector(".cue-label").appendChild(lg);
       // C3: fixed-height scrollable box; E: words laid out as a compact grid.
       var vsc = document.createElement("div"); vsc.className = "vocab-scroll";
       var groups = {};
@@ -343,7 +346,8 @@ window.DrawScreen = (function () {
   function vocabItem(w) {
     var revealed = task && task.vocabRevealed;
     var btn = document.createElement("button");
-    btn.type = "button"; btn.className = "vocab-word" + (revealed ? " vocab-jp" : "");
+    btn.type = "button"; btn.className = "vocab-word" + (revealed ? " vocab-jp" : "") + (w.c ? "" : " vocab-rare");
+    if (!w.c) btn.title = "Less common word";
     if (revealed) {
       btn.textContent = w.jp;                         // written (kanji) form
     } else {

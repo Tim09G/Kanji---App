@@ -245,14 +245,12 @@ if (process.argv.includes("--write")) {
     fs.writeFileSync(fp, txt.slice(0, open) + JSON.stringify(arr) + txt.slice(close + 1));
     console.log("rewrote", fp);
   });
-  // kanji-meta.js curated entries: patch similar via regex per char (JS-literal file)
-  let mtxt = fs.readFileSync("data/kanji-meta.js", "utf8");
-  const curatedChars = [...mtxt.matchAll(/char: "(.)"/g)].map(x => x[1]);
-  curatedChars.forEach(ch => {
-    if (!lists[ch]) return;
-    const re = new RegExp('(char: "' + ch + '",[\\s\\S]*?similar: )\\[[^\\]]*\\]');
-    if (re.test(mtxt)) mtxt = mtxt.replace(re, "$1" + JSON.stringify(lists[ch]));
-  });
-  fs.writeFileSync("data/kanji-meta.js", mtxt);
-  console.log("patched kanji-meta.js curated entries:", curatedChars.length);
+  // kanji-meta.js: same JSON form as the gen files since Phase 35 (window.KANJI_META=[...])
+  const mtxt = fs.readFileSync("data/kanji-meta.js", "utf8");
+  const mopen = mtxt.indexOf("[", mtxt.indexOf("KANJI_META="));
+  const mclose = mtxt.lastIndexOf("]");
+  const marr = JSON.parse(mtxt.slice(mopen, mclose + 1));
+  marr.forEach(m => { m.similar = lists[m.char] || []; });
+  fs.writeFileSync("data/kanji-meta.js", mtxt.slice(0, mopen) + JSON.stringify(marr) + mtxt.slice(mclose + 1));
+  console.log("patched kanji-meta.js curated entries:", marr.length);
 }

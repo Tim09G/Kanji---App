@@ -815,3 +815,13 @@ html, body {
   border: 1px solid var(--line); background: transparent; color: var(--muted); border-radius: 8px;
 }
 .conf-stat-rm:hover { background: var(--bad); border-color: var(--bad); color: #fff; }
+
+/* ============ Phase 35 — common vs. niche readings & vocabulary ============ */
+/* Common readings/words keep the default ink; known-rare ones are muted. Kanji
+   with no commonness signal render everything neutral (= default ink) — the
+   muted treatment only ever reflects real data (JMdict priority / WaniKani). */
+.reading-rare { color: var(--muted); }
+.vocab-word.vocab-rare { color: var(--muted); }
+.vocab-word.vocab-rare .vocab-target { color: #7d9bd8; }        /* keep the bold target readable, just softer */
+.vocab-grid .vocab-word.vocab-rare { border-color: #edf0f3; }
+.rare-legend { font-weight: 400; font-size: 0.68rem; color: var(--muted); text-transform: none; letter-spacing: 0; margin-left: 0.4rem; }

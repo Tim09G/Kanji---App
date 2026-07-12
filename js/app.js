@@ -89,6 +89,24 @@
   function show(id) { Object.keys(screens).forEach(function (k) { screens[k].classList.toggle("active", k === id); }); window.scrollTo(0, 0); }
   function goHome() { renderHome(); show("screen-home"); }
 
+  // Phase 35 (P3): render a reading list with common/rare treatment. The first
+  // `commonN` entries are common (data is pre-sorted common-first); the rest are
+  // muted. commonN === undefined means the kanji has NO commonness signal
+  // (no JMdict-common vocab, no WaniKani data) — everything renders neutral
+  // rather than guessing.
+  function fillReadings(el, arr, commonN, stripDots) {
+    el.innerHTML = "";
+    if (!arr || !arr.length) { el.textContent = "—"; return; }
+    arr.forEach(function (r, i) {
+      if (i) el.appendChild(document.createTextNode("、"));
+      var s = document.createElement("span");
+      s.textContent = stripDots ? r.replace(/[.\-]/g, "") : r;
+      if (commonN !== undefined && i >= commonN) { s.className = "reading-rare"; s.title = "Less common reading"; }
+      el.appendChild(s);
+    });
+  }
+  window.__fillReadings = fillReadings;   // shared with the draw screen's cue panel
+
   // Radical text (C1): radical character + Japanese name in hiragana, no English.
   function radicalText(char) {
     var c = (window.KANJI_COMPONENTS || {})[char]; var r = c && c.radical;
@@ -187,8 +205,8 @@
       bm.appendChild(document.createTextNode(" "));
       bm.appendChild(atag);
     }
-    $("browse-on").textContent = meta.on.join("、") || "—";
-    $("browse-kun").textContent = meta.kun.join("、") || "—";
+    fillReadings($("browse-on"), meta.on, meta.onc);
+    fillReadings($("browse-kun"), meta.kun, meta.kunc);
     $("browse-strokes").textContent = meta.strokeCount;
     $("browse-freq").textContent = (meta.freq && meta.freq < 99999) ? ("#" + meta.freq) : "—";
     $("browse-jlpt").textContent = meta.jlpt ? ("N" + meta.jlpt) : "—";
@@ -244,7 +262,8 @@
       var reading = w.r.map(function (s) { return s.t; }).join("");
       var tipText = reading + " — " + w.en;
       var btn = document.createElement("button");
-      btn.type = "button"; btn.className = "vocab-word vocab-jp"; btn.textContent = w.jp;
+      btn.type = "button"; btn.className = "vocab-word vocab-jp" + (w.c ? "" : " vocab-rare"); btn.textContent = w.jp;
+      if (!w.c) btn.title = "Less common word";
       btn.addEventListener("mouseenter", function () { clearTimeout(browseTipTimer); showBrowseTip(tipText, btn); });
       btn.addEventListener("mouseleave", function () { hideBrowseTip(); });
       btn.addEventListener("click", function () {
