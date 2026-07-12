@@ -194,9 +194,11 @@
     $("browse-jlpt").textContent = meta.jlpt ? ("N" + meta.jlpt) : "—";
     $("browse-radical").textContent = radicalText(char);
     // F: alternate forms / radical-usage variants
+    // Variants = the shapes this kanji takes as a component inside other kanji
+    // (手→扌, 邑→阝). Characters only — no hiragana names (Phase 32 follow-up).
     var vars = (window.KANJI_VARIANTS || {})[char];
     $("browse-variants").textContent = vars && vars.length
-      ? vars.map(function (v) { return v.char + (v.name ? "（" + v.name + "）" : ""); }).join("、") : "—";
+      ? vars.map(function (v) { return v.char; }).join("、") : "—";
     // Phase 32 B: alternate stylistic forms (display-only reference)
     if (window.Versions) Versions.fill($("browse-versions"), char);
     // F: full vocabulary list (with audio)
