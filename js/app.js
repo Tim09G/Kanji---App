@@ -1064,8 +1064,10 @@
   // ===== Offline (Phase 27 B) =====
   // Keyed to the sw.js STROKE cache version: bumping it makes every client re-run
   // the background bulk-cache against the new stroke files (Phase 30: stroke data
-  // was rebuilt from genuine KanjiVG, so v1-cached files are stale).
-  var STROKES_CACHED_KEY = "kanji.offline.strokesCached.v2";
+  // was rebuilt from genuine KanjiVG, so v1-cached files are stale). The "b" suffix
+  // (Phase 33) re-runs the pass so the new radical entries get cached too — files
+  // already in the cache are skipped, so only the additions are fetched.
+  var STROKES_CACHED_KEY = "kanji.offline.strokesCached.v2b";
   function initOffline() {
     if (!("serviceWorker" in navigator)) return;
     navigator.serviceWorker.register("sw.js").catch(function () {});

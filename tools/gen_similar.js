@@ -19,7 +19,7 @@ const path = require("path");
 const KVG = "/tmp/claude-0/-home-user-Kanji---App/6bf433aa-e9f0-518b-9a85-c7530c860182/scratchpad/kvg_extract/kanjivg-master/kanji";
 
 global.window = {};
-for (const f of ["kanji-meta", "kanji-gen-1", "kanji-gen-2", "kanji-gen-3", "kanji-gen-4"]) require(process.cwd() + "/data/" + f + ".js");
+for (const f of ["kanji-meta", "kanji-gen-1", "kanji-gen-2", "kanji-gen-3", "kanji-gen-4", "kanji-gen-5"]) require(process.cwd() + "/data/" + f + ".js");
 const meta = global.window.KANJI_META;
 const chars = meta.map(m => m.char);
 const inSet = new Set(chars);
@@ -104,6 +104,8 @@ const CLASSICS = [
   "汗汁", "住往", "困因", "旅族", "帥師", "候侯", "萩荻", "崇祟", "微徹徹",
   "斤斥", "刺剌", "冶治", "沢択", "積績", "峰蜂逢", "凡几", "毫豪", "延廷",
   "線緑縁", "将浮", "之芝乏",
+  // Phase 33 radical entries: dictionary-radical near-twins
+  "攴攵夂", "母毋", "匚匸", "亅丨", "冂几凵", "冖宀", "厂广",
 ].map(g => [...g].filter(c => inSet.has(c))).filter(g => g.length >= 2);
 
 // ---- combine ----
@@ -229,7 +231,7 @@ console.log("sample 土:", lists["土"].join(" "));
 console.log("sample 貝:", (lists["貝"] || []).join(" "));
 
 if (process.argv.includes("--write")) {
-  const files = ["data/kanji-gen-1.js", "data/kanji-gen-2.js", "data/kanji-gen-3.js", "data/kanji-gen-4.js"];
+  const files = ["data/kanji-gen-1.js", "data/kanji-gen-2.js", "data/kanji-gen-3.js", "data/kanji-gen-4.js", "data/kanji-gen-5.js"];
   files.forEach(fp => {
     const txt = fs.readFileSync(fp, "utf8");
     const open = txt.indexOf("[", txt.indexOf(".concat("));

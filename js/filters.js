@@ -176,7 +176,8 @@ window.Filters = (function () {
       },
     },
 
-    // (F) School grade (from KANJIDIC2): 1–6 kyōiku, 8 secondary jōyō, 9/10 jinmeiyō.
+    // (F) School grade (from KANJIDIC2): 1–6 kyōiku, 8 secondary jōyō, 9/10 jinmeiyō,
+    //     11 = radical characters (our own bucket, not a school grade).
     grade: {
       id: "grade",
       label: "School grade",
@@ -187,6 +188,7 @@ window.Filters = (function () {
           if (g >= 1 && g <= 6) return "Grade " + g + " (elementary)";
           if (g === 8) return "Secondary (jōyō)";
           if (g === 9 || g === 10) return "Jinmeiyō (names)";
+          if (g === 11) return "Radicals";
           return "Grade " + g;
         }
         return Object.keys(present).map(Number).sort(function (a, b) { return a - b; })
@@ -351,6 +353,7 @@ window.Filters = (function () {
         if (g == null) return { key: "out", label: OUTSIDE, rank: 999 };
         if (g >= 1 && g <= 6) return { key: "g" + g, label: "Grade " + g, rank: g };
         if (g === 8) return { key: "g8", label: "Secondary (jōyō)", rank: 8 };
+        if (g === 11) return { key: "g11", label: "Radicals", rank: 11 };
         return { key: "g9", label: "Jinmeiyō (names)", rank: 9 };
       };
       case "strokesAsc": return function (ch) {

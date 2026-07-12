@@ -21,7 +21,7 @@ const path = require("path");
 const KVG = "/tmp/claude-0/-home-user-Kanji---App/6bf433aa-e9f0-518b-9a85-c7530c860182/scratchpad/kvg_extract/kanjivg-master/kanji";
 
 global.window = {};
-for (const f of ["kanji-meta", "kanji-gen-1", "kanji-gen-2", "kanji-gen-3", "kanji-gen-4"]) require(process.cwd() + "/data/" + f + ".js");
+for (const f of ["kanji-meta", "kanji-gen-1", "kanji-gen-2", "kanji-gen-3", "kanji-gen-4", "kanji-gen-5"]) require(process.cwd() + "/data/" + f + ".js");
 const chars = global.window.KANJI_META.map(m => m.char);
 
 const all = fs.readdirSync(KVG);
