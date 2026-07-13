@@ -262,10 +262,10 @@ window.DrawScreen = (function () {
       var dl = document.createElement("dl"); dl.className = "readings";
       var dtOn = document.createElement("dt"); dtOn.textContent = "音（おん）";
       var ddOn = document.createElement("dd");
-      window.__fillReadings(ddOn, (meta.on || []).map(kataToHira), meta.onc, true);
+      window.__fillReadings(ddOn, (meta.on || []).map(kataToHira), meta.onc);
       var dtKun = document.createElement("dt"); dtKun.textContent = "訓（くん）";
       var ddKun = document.createElement("dd");
-      window.__fillReadings(ddKun, meta.kun || [], meta.kunc, true);
+      window.__fillReadings(ddKun, meta.kun || [], meta.kunc);
       dl.appendChild(dtOn); dl.appendChild(ddOn); dl.appendChild(dtKun); dl.appendChild(ddKun);
       rb.appendChild(dl);
       root.appendChild(rb);

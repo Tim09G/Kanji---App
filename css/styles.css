@@ -825,3 +825,8 @@ html, body {
 .vocab-word.vocab-rare .vocab-target { color: #7d9bd8; }        /* keep the bold target readable, just softer */
 .vocab-grid .vocab-word.vocab-rare { border-color: #edf0f3; }
 .rare-legend { font-weight: 400; font-size: 0.68rem; color: var(--muted); text-transform: none; letter-spacing: 0; margin-left: 0.4rem; }
+
+/* Phase 36: okurigana variants collapsed under their stem — the parenthesised
+   word-endings are visually secondary to the kanji's actual reading (the stem). */
+.reading-oku { font-size: 0.85em; color: var(--muted); }
+.reading-oku .reading-rare { opacity: 0.75; }

@@ -94,15 +94,41 @@
   // muted. commonN === undefined means the kanji has NO commonness signal
   // (no JMdict-common vocab, no WaniKani data) — everything renders neutral
   // rather than guessing.
-  function fillReadings(el, arr, commonN, stripDots) {
+  // Phase 36: okurigana variants collapse under their shared stem — the KANJI's
+  // reading is the stem, the rest is word-form. ひろ.がる/ひろ.げる/ひろ.める
+  // renders as ひろ（がる・げる・める）, not three near-identical readings.
+  function fillReadings(el, arr, commonN) {
     el.innerHTML = "";
     if (!arr || !arr.length) { el.textContent = "—"; return; }
+    var groups = [], byStem = {};
     arr.forEach(function (r, i) {
-      if (i) el.appendChild(document.createTextNode("、"));
+      var dot = r.indexOf(".");
+      var stem = dot < 0 ? r.replace(/-/g, "") : r.slice(0, dot).replace(/-/g, "");
+      var oku = dot < 0 ? null : r.slice(dot + 1).replace(/-/g, "");
+      var g = byStem[stem];
+      if (!g) { g = byStem[stem] = { stem: stem, oku: [], common: false }; groups.push(g); }
+      var isCommon = commonN !== undefined && i < commonN;
+      if (oku) g.oku.push({ t: oku, common: isCommon });
+      if (isCommon) g.common = true;
+    });
+    groups.forEach(function (g, gi) {
+      if (gi) el.appendChild(document.createTextNode("、"));
       var s = document.createElement("span");
-      s.textContent = stripDots ? r.replace(/[.\-]/g, "") : r;
-      if (commonN !== undefined && i >= commonN) { s.className = "reading-rare"; s.title = "Less common reading"; }
+      s.textContent = g.stem;
+      if (commonN !== undefined && !g.common) { s.className = "reading-rare"; s.title = "Less common reading"; }
       el.appendChild(s);
+      if (g.oku.length) {
+        var wrap = document.createElement("span"); wrap.className = "reading-oku";
+        wrap.appendChild(document.createTextNode("（"));
+        g.oku.forEach(function (o, oi) {
+          if (oi) wrap.appendChild(document.createTextNode("・"));
+          var os = document.createElement("span"); os.textContent = o.t;
+          if (commonN !== undefined && !o.common) { os.className = "reading-rare"; os.title = "Less common reading"; }
+          wrap.appendChild(os);
+        });
+        wrap.appendChild(document.createTextNode("）"));
+        el.appendChild(wrap);
+      }
     });
   }
   window.__fillReadings = fillReadings;   // shared with the draw screen's cue panel
